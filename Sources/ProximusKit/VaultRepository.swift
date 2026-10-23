@@ -132,9 +132,7 @@ public final class VaultRepository {
         return try Encoding.encode(EncryptedSnapshot(header: header, ciphertext: VaultCrypto.seal(Encoding.encode(contents), key: key, context: Encoding.encode(header))))
     }
     private func boundedRead(_ url: URL) throws -> Data {
-        let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard size <= VaultCrypto.maximumPayload * 2 else { throw ProximusError.invalid("This file exceeds the vault size limit.") }
-        return try Data(contentsOf: url)
+        try BoundedFile.read(url, limit: VaultCrypto.maximumPayload * 2)
     }
     private func writeState(_ state: VaultState) throws { try write(Encoding.encode(state), to: directory.appendingPathComponent("state.json")) }
     private func write(_ data: Data, to url: URL) throws {

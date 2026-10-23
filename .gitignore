@@ -14,6 +14,7 @@ Vendor/
 xcuserdata/
 Config/Local.xcconfig
 *.proximusvault
+*.proximusrecovery
 *.recovery
 *.key
 services/data/

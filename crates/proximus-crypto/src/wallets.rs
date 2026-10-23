@@ -142,7 +142,10 @@ fn wallet(network: u32, recovery: &str) -> Result<Wallet, ()> {
             "m/84'/0'/0'/0/0"
         }
         .into();
-        let secp = Secp256k1::new();
+        let mut secp = Secp256k1::new();
+        let mut blinding = Zeroizing::new([0u8; 32]);
+        getrandom::getrandom(&mut *blinding).map_err(|_| ())?;
+        secp.seeded_randomize(&blinding);
         let path = DerivationPath::from_str(&result.derivation_path).map_err(|_| ())?;
         let mut root = Xpriv::new_master(Network::Bitcoin, &*seed).map_err(|_| ())?;
         let child = root.derive_priv(&secp, &path);

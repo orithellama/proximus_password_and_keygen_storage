@@ -1,7 +1,7 @@
 import Foundation
 import ProximusCrypto
 
-public enum WalletNetwork: String, Codable, CaseIterable, Identifiable {
+public enum WalletNetwork: String, Codable, CaseIterable, Identifiable, Sendable {
     case solana, evm, bitcoin, monero
     public var id: String { rawValue }
     public var label: String { switch self { case .solana: return "Solana"; case .evm: return "Ethereum / EVM"; case .bitcoin: return "Bitcoin"; case .monero: return "Monero" } }
@@ -74,7 +74,7 @@ public struct LocalWalletStore {
     private struct Stored: Codable { var format = 1; var metadata: WalletMetadata; var envelope: Data }
     public init(deviceID: UUID) throws {
         let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        try self.init(directory: root.appendingPathComponent((Bundle.main.bundleIdentifier ?? "org.proximus.passwords") + ".device-wallets", isDirectory: true), deviceID: deviceID, protect: WalletProtection.seal, unprotect: WalletProtection.open)
+        try self.init(directory: root.appendingPathComponent((Bundle.main.bundleIdentifier ?? "org.proximus.passwords") + ".device-wallets", isDirectory: true), deviceID: deviceID, protect: WalletProtection.seal, unprotect: { try WalletProtection.open($0, context: $1) })
     }
     init(directory: URL, deviceID: UUID, protect: @escaping (Data, Data) throws -> Data, unprotect: @escaping (Data, Data) throws -> Data) throws {
         self.directory = directory; self.deviceID = deviceID; self.protect = protect; self.unprotect = unprotect
@@ -99,7 +99,7 @@ public struct LocalWalletStore {
         guard metadata.ownerDeviceID == deviceID else { throw ProximusError.unavailable("Open this wallet on the device that holds its keys.") }
         let url = file(metadata)
         guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 32768 else { throw ProximusError.authentication }
-        let stored = try Encoding.decode(Stored.self, from: Data(contentsOf: url))
+        let stored = try Encoding.decode(Stored.self, from: BoundedFile.read(url, limit: 32768))
         guard stored.format == 1, stored.metadata == metadata else { throw ProximusError.authentication }
         var plain = try unprotect(stored.envelope, metadata.context)
         defer { plain.resetBytes(in: 0..<plain.count) }
@@ -112,7 +112,7 @@ public struct LocalWalletStore {
         let url = file(metadata)
         if FileManager.default.fileExists(atPath: url.path) {
             guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 32768 else { throw ProximusError.authentication }
-            let stored = try Encoding.decode(Stored.self, from: Data(contentsOf: url))
+            let stored = try Encoding.decode(Stored.self, from: BoundedFile.read(url, limit: 32768))
             guard stored.format == 1, stored.metadata == metadata else { throw ProximusError.authentication }
             try FileManager.default.removeItem(at: url)
         }

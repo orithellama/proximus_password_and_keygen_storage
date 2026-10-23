@@ -12,6 +12,44 @@ mod wallets;
 const MAX_PAYLOAD: usize = 8 * 1024 * 1024;
 const OVERHEAD: usize = 12 + 16;
 
+/// # Safety
+/// Password has password_len readable bytes, salt 16 bytes, output 32 disjoint writable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn px_backup_key(
+    password: *const u8,
+    password_len: usize,
+    salt: *const u8,
+    out: *mut u8,
+) -> i32 {
+    if out.is_null() {
+        return 1;
+    }
+    unsafe { slice::from_raw_parts_mut(out, 32) }.zeroize();
+    if password.is_null() || salt.is_null() || !(16..=1024).contains(&password_len) {
+        return 1;
+    }
+    let params = match Params::new(65536, 3, 1, Some(32)) {
+        Ok(p) => p,
+        Err(_) => return 2,
+    };
+    let kdf = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+    let mut key = Zeroizing::new([0u8; 32]);
+    if kdf
+        .hash_password_into(
+            unsafe { slice::from_raw_parts(password, password_len) },
+            unsafe { slice::from_raw_parts(salt, 16) },
+            &mut *key,
+        )
+        .is_err()
+    {
+        return 2;
+    }
+    unsafe {
+        ptr::copy_nonoverlapping(key.as_ptr(), out, 32);
+    }
+    0
+}
+
 fn derive(password: &[u8], recovery: &[u8], salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, ()> {
     if password.len() < 12 || password.len() > 1024 || recovery.len() != 32 || salt.len() != 16 {
         return Err(());

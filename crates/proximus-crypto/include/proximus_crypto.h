@@ -14,6 +14,7 @@ int32_t px_open(const uint8_t *key, const uint8_t *sealed, size_t sealed_len,
 int32_t px_generate_password(size_t length, const uint8_t *alphabet,
                             size_t alphabet_len, uint8_t *out);
 void px_zero(uint8_t *data, size_t len);
+int32_t px_backup_key(const uint8_t *password, size_t password_len, const uint8_t *salt, uint8_t *out);
 // BIP-39 English, 24 words. Buffers must be disjoint. out_len is set to zero on failure.
 int32_t px_mnemonic(uint8_t *out, size_t capacity, size_t *out_len);
 // network: 1 Solana, 2 EVM, 3 Bitcoin mainnet, 4 Monero mainnet.

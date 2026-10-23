@@ -55,6 +55,7 @@ struct VaultView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Encrypted on this device", systemImage: "lock.shield").font(.caption.bold()).foregroundStyle(Theme.accent)
                         Text(session.syncStatus).font(.caption).foregroundStyle(.secondary)
+                        if session.hasRecoveryBackup { Text(session.recoveryStatus).font(.caption).foregroundStyle(.secondary) }
                     }.padding(.vertical, 8)
                 }
                 Section {
@@ -157,7 +158,7 @@ struct ItemDetail: View {
         }.background(Theme.background).navigationTitle(item.title).errorAlert($error)
             .onChange(of: item.id) { _, _ in reveal = false }
             .alert("Copy password?", isPresented: $copyNotice) { Button("Cancel", role: .cancel) {}; Button("Copy for 30 seconds") { Platform.copySecret(item.password) } } message: { Text(DomainPolicy.passwordNotice(destination: nil)) }
-            .confirmationDialog("Delete this item?", isPresented: $deleteNotice, titleVisibility: .visible) { Button("Delete", role: .destructive) { Task { do { try await session.delete(item) } catch { self.error = ErrorMessage(error) } } } } message: { Text(item.kind == .wallet ? "This deletes the address record and its private keys on this device. Make sure you have backed up the wallet recovery details. Vault backups cannot recover wallet keys. Address records on other devices do not contain the keys." : item.kind == .passkey ? "This removes the local private key when it belongs to this device. Remove the corresponding passkey on the website too. Older encrypted snapshots can still contain record metadata." : "The item is removed from the current vault. Older encrypted snapshots and exported backups may retain it.") }
+            .confirmationDialog("Delete this item?", isPresented: $deleteNotice, titleVisibility: .visible) { Button("Delete", role: .destructive) { Task { do { try await session.delete(item) } catch { self.error = ErrorMessage(error) } } } } message: { Text(item.kind == .wallet ? "This deletes the address record and its private keys on this device. Make sure you have backed up the wallet recovery details. Standard vault exports cannot recover wallet keys. Older encrypted recovery kits may still contain them. Address records on other devices do not contain the keys." : item.kind == .passkey ? "This removes the local private key when it belongs to this device. Remove the corresponding passkey on the website too. Older encrypted snapshots can still contain record metadata." : "The item is removed from the current vault. Older encrypted snapshots and exported backups may retain it.") }
     }
     private func field(_ label: String, value: String) -> some View { VStack(alignment: .leading, spacing: 8) { Text(label).font(.caption).foregroundStyle(.secondary); Text(value).textSelection(.enabled) } }
 }

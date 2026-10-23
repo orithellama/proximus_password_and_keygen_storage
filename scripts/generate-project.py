@@ -79,7 +79,7 @@ for platform in ["macOS", "iOS"]:
         entitlements = {"com.apple.security.application-groups":["$(PROXIMUS_APP_GROUP)"],"keychain-access-groups":["$(PROXIMUS_KEYCHAIN_GROUP)"],"com.apple.developer.authentication-services.autofill-credential-provider":True}
         if platform == "macOS":
             entitlements["com.apple.security.app-sandbox"] = True
-            if not extension: entitlements.update({"com.apple.security.network.client":True,"com.apple.security.network.server":True,"com.apple.security.files.user-selected.read-write":True})
+            if not extension: entitlements.update({"com.apple.security.network.client":True,"com.apple.security.network.server":True,"com.apple.security.files.user-selected.read-write":True,"com.apple.security.files.bookmarks.app-scope":True})
         entitlementpath = "Config/"+name+".entitlements"
         (ROOT/entitlementpath).write_bytes(plistlib.dumps(entitlements, sort_keys=True))
         product = add("product:"+name, isa="PBXFileReference", explicitFileType="wrapper.app-extension" if extension else "wrapper.application", path=("ProximusAutoFill" if extension else "Proximus")+(".appex" if extension else ".app"), sourceTree="BUILT_PRODUCTS_DIR")

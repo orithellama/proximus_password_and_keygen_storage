@@ -26,7 +26,7 @@ struct WalletCreator: View {
                     }
                 }
                 Section("Recovery and device storage") {
-                    Text("Private keys stay on this device. Paired devices receive the address and label. Back up your recovery details after creating the wallet. Vault backups do not include wallet keys.")
+                    Text("Paired devices receive the address and label. Keep recovery details separately or enable an encrypted recovery kit in Settings. Standard vault exports do not include wallet keys.")
                     Text("Keys and addresses only. Transaction signing, balances, and transfers are not included.").foregroundStyle(.secondary)
                     if !HardwareUnlock.isAvailable { Text("A device with Secure Enclave and a device passcode is required.").foregroundStyle(.secondary) }
                 }
@@ -77,7 +77,7 @@ struct WalletDetails: View {
             Label(local ? "Keys stay on this device" : "Address only on this device", systemImage: local ? "lock.shield" : "eye").foregroundStyle(Theme.accent)
             if local {
                 Button("Back up or reveal recovery details") { recovery = true }.buttonStyle(.bordered)
-                Text("Save recovery details separately. Pairing and vault backups contain the public address only.").font(.caption).foregroundStyle(.secondary)
+                Text("Save recovery details separately or use an encrypted recovery kit. Pairing and standard vault exports contain the public address only.").font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("Open Proximus on the original device to back up its keys, or restore the wallet here from your separate recovery backup.").font(.callout).foregroundStyle(.secondary)
             }

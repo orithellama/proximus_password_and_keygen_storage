@@ -61,7 +61,7 @@ func readImport(_ url: URL) throws -> Data {
     let access = url.startAccessingSecurityScopedResource()
     defer { if access { url.stopAccessingSecurityScopedResource() } }
     guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) <= VaultCrypto.maximumPayload * 2 else { throw ProximusError.invalid("This file is too large.") }
-    return try Data(contentsOf: url)
+    return try BoundedFile.read(url, limit: VaultCrypto.maximumPayload * 2)
 }
 
 struct QRCodeView: View {

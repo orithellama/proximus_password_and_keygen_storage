@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"proximus.local/passwords/services/internal/securehttp"
 )
@@ -28,6 +29,7 @@ var hashPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 type relay struct {
 	root, enrollment string
 	mu               sync.Mutex
+	activeUploads    atomic.Int32
 }
 
 func (s *relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -99,11 +101,18 @@ func (s *relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method == "PUT" {
+			body, err := s.readBody(w, r, 64)
+			// A request body can take seconds to arrive. Re-read head after the
+			// unlocked read, so two concurrent writes cannot both pass CAS.
+			current, readErr := os.ReadFile(filepath.Join(dir, "head"))
+			if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+				http.Error(w, "storage unavailable", 500)
+				return
+			}
 			if r.Header.Get("If-Match") != `"`+string(current)+`"` {
 				http.Error(w, "head changed", 409)
 				return
 			}
-			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64))
 			if err != nil || !hashPattern.Match(body) {
 				http.Error(w, "invalid hash", 400)
 				return
@@ -130,11 +139,22 @@ func (s *relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			defer f.Close()
 			w.Header().Set("Content-Type", "application/octet-stream")
-			_, _ = io.Copy(w, io.LimitReader(f, maxObject))
+			func() {
+				s.mu.Unlock()
+				defer s.mu.Lock()
+				_, _ = io.Copy(w, io.LimitReader(f, maxObject))
+			}()
 			return
 		}
 		if r.Method == "PUT" {
-			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxObject))
+			if s.activeUploads.Add(1) > 4 {
+				s.activeUploads.Add(-1)
+				w.Header().Set("Retry-After", "1")
+				http.Error(w, "upload capacity reached", 503)
+				return
+			}
+			defer s.activeUploads.Add(-1)
+			body, err := s.readBody(w, r, maxObject)
 			digest := sha256.Sum256(body)
 			if err != nil || hex.EncodeToString(digest[:]) != parts[4] {
 				http.Error(w, "invalid object", 400)
@@ -172,6 +192,13 @@ func (s *relay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Allow", "GET, PUT")
 	http.Error(w, "unsupported request", 405)
+}
+
+// The caller holds mu. Network input must never hold the storage lock.
+func (s *relay) readBody(w http.ResponseWriter, r *http.Request, limit int64) ([]byte, error) {
+	s.mu.Unlock()
+	defer s.mu.Lock()
+	return io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 }
 
 func main() {

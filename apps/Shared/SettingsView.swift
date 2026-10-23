@@ -48,6 +48,8 @@ struct SettingsView: View {
                     }
                 }
                 Section("Recovery & backup") {
+                    NavigationLink("iCloud & encrypted recovery kit") { RecoverySettingsView(session: session) }
+                    NavigationLink("Custom RPC nodes") { RPCSettingsView() }
                     Button("Import passwords from CSV") { importingCSV = true }
                     Button("Export encrypted backup") { run { document = VaultDocument(data: try session.exportBackup()); filename = "Proximus-\(Date().formatted(.iso8601.year().month().day())).proximusvault"; exporting = true } }
                     Text("Backups require your master passphrase and recovery key. Store a copy away from this device. Device-bound passkeys cannot be recovered from a vault backup.").font(.caption).foregroundStyle(.secondary)
@@ -59,7 +61,7 @@ struct SettingsView: View {
                     Text("A paired device has access to the password vault. If one is lost, rotate exposed account passwords and move to a fresh vault and relay namespace. Removing a name would not revoke its cryptographic access.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("About") {
-                    Text("Proximus - 0.2.0")
+                    Text("Proximus - 0.3.0")
                     Text("Free to use. All features included.").font(.caption)
                     Text("Open source under Apache-2.0. Copyright PROXIMUS Research Labs Foundation.").font(.caption)
                     Text("AES-256-GCM encrypted vaults. Argon2id recovery protection. Hardware-bound passkeys using Secure Enclave.").font(.caption).foregroundStyle(.secondary)

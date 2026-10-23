@@ -5,10 +5,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"io"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestAuthenticatedImmutableObjectsAndHeadCAS(t *testing.T) {
@@ -71,4 +73,53 @@ func TestAuthenticatedImmutableObjectsAndHeadCAS(t *testing.T) {
 	if got := call("GET", path+"/objects/../../auth", "", token, "", "").Code; got == 200 {
 		t.Fatal("path traversal accepted")
 	}
+}
+
+func TestSlowAuthenticatedUploadDoesNotBlockHeadRead(t *testing.T) {
+	s := &relay{root: t.TempDir(), enrollment: strings.Repeat("e", 32)}
+	token := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
+	path := "/v1/vaults/00000000-0000-4000-8000-000000000007"
+	create := httptest.NewRequest("PUT", path, nil)
+	create.Header.Set("Authorization", "Bearer "+token)
+	create.Header.Set("X-Enrollment-Key", s.enrollment)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, create)
+	if w.Code != 201 {
+		t.Fatal(w.Code)
+	}
+	reader, writer := io.Pipe()
+	defer writer.Close()
+	body := "encrypted snapshot"
+	digest := sha256.Sum256([]byte(body))
+	upload := httptest.NewRequest("PUT", path+"/objects/"+hex.EncodeToString(digest[:]), reader)
+	upload.Header.Set("Authorization", "Bearer "+token)
+	done := make(chan struct{})
+	go func() { defer close(done); s.ServeHTTP(httptest.NewRecorder(), upload) }()
+	deadline := time.After(time.Second)
+	for s.activeUploads.Load() == 0 {
+		select {
+		case <-deadline:
+			t.Fatal("upload did not start")
+		default:
+			time.Sleep(time.Millisecond)
+		}
+	}
+	readDone := make(chan int, 1)
+	go func() {
+		r := httptest.NewRequest("GET", path+"/head", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, r)
+		readDone <- w.Code
+	}()
+	select {
+	case code := <-readDone:
+		if code != 200 {
+			t.Fatal(code)
+		}
+	case <-time.After(time.Second):
+		t.Error("slow upload blocked head read")
+	}
+	writer.Close()
+	<-done
 }

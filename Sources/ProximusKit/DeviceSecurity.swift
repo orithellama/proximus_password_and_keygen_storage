@@ -91,10 +91,10 @@ enum WalletProtection {
         defer { wrapping.resetBytes(in: 0..<wrapping.count) }
         return try Encoding.encode(HardwareEnvelope(keyReference: hardware.dataRepresentation, ephemeralPublicKey: ephemeral.publicKey.x963Representation, ciphertext: VaultCrypto.seal(plain, key: wrapping, context: context)))
     }
-    static func open(_ data: Data, context: Data) throws -> Data {
+    static func open(_ data: Data, context: Data, reason: String = "Show this wallet’s recovery phrase and private keys") throws -> Data {
         let envelope = try Encoding.decode(HardwareEnvelope.self, from: data)
         let auth = LAContext()
-        auth.localizedReason = "Show this wallet’s recovery phrase and private keys"
+        auth.localizedReason = reason
         auth.touchIDAuthenticationAllowableReuseDuration = 0
         let hardware = try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: envelope.keyReference, authenticationContext: auth)
         let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: envelope.ephemeralPublicKey)

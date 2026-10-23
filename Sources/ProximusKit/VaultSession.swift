@@ -8,6 +8,11 @@ import Combine
     @Published public private(set) var contents: VaultContents?
     @Published public private(set) var relay: RelayConfiguration?
     @Published public private(set) var syncStatus = "Local only"
+    @Published public private(set) var recoveryStatus = "Recovery backup is off"
+    private var recoveryBackup: RecoveryBackupSession?
+    private var recoveryUpdate: Task<Void, Never>?
+    private var recoveryEpoch: UInt64 = 0
+    private var recoveryOperation = false
     @Published public private(set) var conflictingHead: String?
     @Published public private(set) var indexEnabled: Bool
     private var key: SecretBytes?
@@ -32,16 +37,26 @@ import Combine
         return session
     }
     #endif
-    public func create(passphrase: String, recovery: String, name: String, deviceName: String, rememberRecovery: Bool) async throws {
+    public func create(passphrase: String, recovery: String, name: String, deviceName: String, rememberRecovery: Bool, deviceUnlock: Bool = false, recoverySetup: RecoverySetup? = nil) async throws {
         let generation = lockGeneration
         let secret = try VaultCrypto.decodeRecovery(recovery)
         let contents = VaultContents(name: name, devices: [PairedDevice(id: deviceID, name: deviceName)])
         let repository = repository
         let (state, key) = try await Task.detached(priority: .userInitiated) { try repository.create(passphrase: passphrase, recovery: secret, contents: contents) }.value
-        if rememberRecovery { try DeviceKeychain.write(secret, account: "recovery/" + state.header.vaultID.uuidString) }
         self.state = state
-        guard generation == lockGeneration else { throw ProximusError.locked }
+        if rememberRecovery { try DeviceKeychain.write(secret, account: "recovery/" + state.header.vaultID.uuidString) }
+        do {
+            if deviceUnlock { try await Task.detached { try HardwareUnlock.enable(vault: state.header.vaultID, key: key) }.value }
+        } catch { throw ProximusError.unavailable("Vault created. Unlock with your master passphrase and recovery key, then enable device unlock in Settings. " + error.localizedDescription) }
+        var backup: RecoveryBackupSession?
+        if let setup = recoverySetup {
+            do { backup = try await Task.detached { try RecoveryBackupSession.configure(vaultID: state.header.vaultID, payload: RecoveryPayload(contents: contents, wallets: []), password: setup.password, folder: setup.folder) }.value }
+            catch { throw ProximusError.unavailable("Vault created. Unlock it and finish recovery backup setup in Settings. " + error.localizedDescription) }
+        }
+        guard generation == lockGeneration else { await backup?.lock(); throw ProximusError.locked }
+        recoveryBackup = backup
         try activate(key: key, state: state)
+        if backup != nil { recoveryStatus = "Encrypted kit saved to your chosen folder." }
     }
     public func unlock(passphrase: String, recovery: String) async throws {
         let generation = lockGeneration
@@ -68,6 +83,15 @@ import Combine
         else { relay = nil }
         syncStatus = relay == nil ? "Local only" : "Ready to sync"
         touch()
+        if recoveryBackup == nil, RecoveryBackupSession.isConfigured(state.header.vaultID) {
+            let generation = lockGeneration
+            Task { [weak self] in
+                guard let self, self.isUnlocked, self.lockGeneration == generation else { return }
+                do { try await self.resumeRecoveryBackup() }
+                catch { if self.isUnlocked, self.lockGeneration == generation, self.recoveryBackup == nil { self.recoveryStatus = "Backup paused. Resume it in Settings." } }
+            }
+            recoveryStatus = "Unlock recovery backups to resume automatic saving"
+        }
     }
     public func touch() {
         guard isUnlocked else { return }
@@ -80,6 +104,11 @@ import Combine
     }
     public func lock() {
         lockGeneration &+= 1
+        recoveryEpoch &+= 1
+        let backup = recoveryBackup; recoveryBackup = nil
+        recoveryUpdate?.cancel(); recoveryUpdate = nil
+        Task { await backup?.lock() }
+        if let id = state?.header.vaultID, RecoveryBackupSession.isConfigured(id) { recoveryStatus = "Recovery backup paused while locked" }
         lockTask?.cancel(); lockTask = nil
         key?.erase(); key = nil; contents = nil; conflictingHead = nil
     }
@@ -87,27 +116,28 @@ import Combine
         guard let key else { throw ProximusError.locked }
         let current = try repository.state()
         contents = try key.withData { try repository.contents(state: current, key: $0) }; state = current
+        if let contents { queueRecoveryBackup(contents) }
     }
-    public func save(_ item: VaultItem) async throws {
+    public func save(_ item: VaultItem, walletRecovery: WalletRecoveryRecord? = nil) async throws {
         guard var contents else { throw ProximusError.locked }
         var item = try item.validated(); item.modifiedAt = Date()
         if let index = contents.items.firstIndex(where: { $0.id == item.id }) { contents.items[index] = item } else { contents.items.append(item) }
-        try persist(contents)
+        try persist(contents, walletRecovery: walletRecovery)
         if indexEnabled { await refreshIndex(contents.items) }
     }
     public func createWallet(network: WalletNetwork, title: String, recovery: String = "") async throws -> UUID {
         guard isUnlocked else { throw ProximusError.locked }
         let generation = lockGeneration, device = deviceID
-        let metadata = try await Task.detached(priority: .userInitiated) {
+        let (metadata, material) = try await Task.detached(priority: .userInitiated) {
             let material = try WalletCrypto.derive(network: network, recovery: recovery)
             let metadata = material.metadata(network: network, deviceID: device)
             try LocalWalletStore(deviceID: device).save(material, metadata: metadata)
-            return metadata
+            return (metadata, material)
         }.value
         do {
             guard isUnlocked, generation == lockGeneration else { throw ProximusError.locked }
             let item = VaultItem(kind: .wallet, title: title, wallet: metadata)
-            try await save(item)
+            try await save(item, walletRecovery: WalletRecoveryRecord(metadata: metadata, material: material))
             return item.id
         } catch { try? LocalWalletStore(deviceID: device).remove(metadata); throw error }
     }
@@ -135,10 +165,10 @@ import Combine
         do { try await CredentialIndex.replace(items: items, deviceID: deviceID) }
         catch { syncStatus = "Saved locally. Re-enable AutoFill suggestions in Settings to refresh them." }
     }
-    private func persist(_ contents: VaultContents) throws {
+    private func persist(_ contents: VaultContents, walletRecovery: WalletRecoveryRecord? = nil) throws {
         guard let key, let state else { throw ProximusError.locked }
         self.state = try key.withData { try repository.save(contents, key: $0, expected: state) }
-        self.contents = contents; touch()
+        self.contents = contents; touch(); queueRecoveryBackup(contents, walletRecovery: walletRecovery)
     }
     public func enableDeviceUnlock() async throws {
         guard let state, let key else { throw ProximusError.locked }
@@ -207,6 +237,106 @@ import Combine
         } else { syncStatus = "Nearby sync complete" }
         if indexEnabled, let contents { await refreshIndex(contents.items) }
         touch()
+    }
+    public var hasRecoveryBackup: Bool { state.map { RecoveryBackupSession.isConfigured($0.header.vaultID) } ?? false }
+    public func enableRecoveryBackup(password: String, folder: Data) async throws {
+        guard let state, let contents, isUnlocked else { throw ProximusError.locked }
+        guard !recoveryOperation else { throw ProximusError.unavailable("A recovery backup operation is already in progress.") }
+        recoveryOperation = true; defer { recoveryOperation = false }
+        await suspendRecoveryBackup()
+        guard isUnlocked else { throw ProximusError.locked }
+        let generation = lockGeneration, device = deviceID
+        recoveryStatus = "Authorizing recovery backup…"
+        let backup = try await Task.detached(priority: .userInitiated) {
+            let store = try LocalWalletStore(deviceID: device)
+            let metadata = Dictionary(grouping: contents.items.compactMap(\.wallet).filter { $0.ownerDeviceID == device }, by: \.id).compactMap { $0.value.first }
+            let records = try metadata.map { WalletRecoveryRecord(metadata: $0, material: try store.reveal($0)) }
+            return try RecoveryBackupSession.configure(vaultID: state.header.vaultID, payload: RecoveryPayload(contents: contents, wallets: records), password: password, folder: folder)
+        }.value
+        guard isUnlocked, generation == lockGeneration else { await backup.lock(); throw ProximusError.locked }
+        let old = recoveryBackup; recoveryBackup = backup; await old?.lock()
+        if let current = self.contents { queueRecoveryBackup(current) }
+    }
+    public func resumeRecoveryBackup() async throws {
+        guard let state, isUnlocked else { throw ProximusError.locked }
+        guard !recoveryOperation else { throw ProximusError.unavailable("A recovery backup operation is already in progress.") }
+        recoveryOperation = true; defer { recoveryOperation = false }
+        await suspendRecoveryBackup()
+        guard isUnlocked else { throw ProximusError.locked }
+        let generation = lockGeneration, device = deviceID
+        guard let backup = try await Task.detached(priority: .userInitiated, operation: { try RecoveryBackupSession.resume(vaultID: state.header.vaultID) }).value else { throw ProximusError.unavailable("Choose a recovery backup folder first.") }
+        do {
+            guard generation == lockGeneration, let current = contents, isUnlocked else { throw ProximusError.locked }
+            let missing = try await backup.missingWallets(contents: current, deviceID: device)
+            for metadata in missing {
+                let material = try await Task.detached { try LocalWalletStore(deviceID: device).reveal(metadata) }.value
+                guard generation == lockGeneration, let latest = contents, isUnlocked else { throw ProximusError.locked }
+                try await backup.update(contents: latest, newWallet: WalletRecoveryRecord(metadata: metadata, material: material))
+            }
+            guard generation == lockGeneration, let latest = contents, isUnlocked else { throw ProximusError.locked }
+            let old = recoveryBackup; recoveryBackup = backup; await old?.lock()
+            queueRecoveryBackup(latest)
+        } catch { await backup.lock(); throw error }
+    }
+    public func disableRecoveryBackup() async throws {
+        guard isUnlocked, let id = state?.header.vaultID else { throw ProximusError.locked }
+        guard !recoveryOperation else { throw ProximusError.unavailable("Wait for the current recovery backup operation to finish.") }
+        recoveryOperation = true; defer { recoveryOperation = false }
+        await suspendRecoveryBackup()
+        try RecoveryBackupSession.disable(vaultID: id)
+        recoveryStatus = "Recovery backup is off. Existing files remain in your chosen folder."
+    }
+    private func suspendRecoveryBackup() async {
+        recoveryEpoch &+= 1
+        let old = recoveryBackup, pending = recoveryUpdate
+        recoveryBackup = nil; recoveryUpdate = nil; pending?.cancel()
+        await old?.lock()
+        await pending?.value
+    }
+    private func queueRecoveryBackup(_ contents: VaultContents, walletRecovery: WalletRecoveryRecord? = nil) {
+        guard let backup = recoveryBackup else { return }
+        let previous = recoveryUpdate, generation = lockGeneration, epoch = recoveryEpoch, device = deviceID
+        recoveryStatus = "Saving encrypted recovery kit…"
+        // Preserve order and new-wallet recovery records across rapid edits.
+        recoveryUpdate = Task { [weak self] in
+            await previous?.value
+            guard !Task.isCancelled, let self, self.isUnlocked, self.lockGeneration == generation, self.recoveryEpoch == epoch else { return }
+            do {
+                try await backup.update(contents: contents, newWallet: walletRecovery)
+                let missing = try await backup.missingWallets(contents: contents, deviceID: device)
+                if self.isUnlocked, self.lockGeneration == generation, self.recoveryEpoch == epoch { self.recoveryStatus = missing.isEmpty ? "Encrypted kit saved to your chosen folder." : "Wallet keys are missing from this kit. Resume backup to include them." }
+            } catch { if self.isUnlocked, self.lockGeneration == generation, self.recoveryEpoch == epoch { self.recoveryStatus = "Backup needs attention: " + error.localizedDescription } }
+        }
+    }
+    public func restoreRecoveryKit(_ data: Data, backupPassword: String, passphrase: String, recovery: String, deviceName: String, deviceUnlock: Bool = true, rememberRecovery: Bool = true) async throws {
+        guard !hasVault else { throw ProximusError.conflict }
+        let generation = lockGeneration, device = deviceID, repository = repository
+        let secret = try VaultCrypto.decodeRecovery(recovery)
+        let (state, key) = try await Task.detached(priority: .userInitiated) {
+            let payload = try RecoveryKit.open(data, password: backupPassword)
+            var contents = payload.contents
+            let store = try LocalWalletStore(deviceID: device)
+            var installed = [WalletMetadata]()
+            do {
+                for record in payload.wallets {
+                    let material = try WalletCrypto.derive(network: record.metadata.network, recovery: record.material.recovery)
+                    let metadata = material.metadata(network: record.metadata.network, deviceID: device)
+                    try store.save(material, metadata: metadata); installed.append(metadata)
+                    for i in contents.items.indices where contents.items[i].wallet == record.metadata { contents.items[i].wallet = metadata }
+                }
+                contents.devices = [PairedDevice(id: device, name: deviceName)]
+                return try repository.create(passphrase: passphrase, recovery: secret, contents: contents)
+            } catch { for metadata in installed { try? store.remove(metadata) }; throw error }
+        }.value
+        self.state = state
+        if rememberRecovery { try DeviceKeychain.write(secret, account: "recovery/" + state.header.vaultID.uuidString) }
+        if deviceUnlock {
+            do { try await Task.detached { try HardwareUnlock.enable(vault: state.header.vaultID, key: key) }.value }
+            catch { throw ProximusError.unavailable("Recovery completed. Unlock with your new master passphrase and recovery key, then enable device unlock in Settings. " + error.localizedDescription) }
+        }
+        guard generation == lockGeneration else { throw ProximusError.locked }
+        try activate(key: key, state: state)
+        recoveryStatus = "Recovered into a new local vault. Choose a backup folder to resume automatic saving."
     }
     public func pairingBundle(device: UUID, name: String) throws -> PairingBundle {
         guard var contents, let key else { throw ProximusError.locked }

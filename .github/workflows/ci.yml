@@ -8,13 +8,17 @@ jobs:
   apple:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0, Node 24
         with:
           go-version-file: services/go.mod
           cache: false
       - name: Install Apple Rust targets
         run: rustup target add aarch64-apple-darwin aarch64-apple-ios aarch64-apple-ios-sim
+      - name: Check known Rust advisories
+        run: cargo install cargo-audit --version 0.22.2 --locked && cargo audit
       - name: Build cryptography and generate project
         run: bash scripts/bootstrap.sh
       - name: Verify and compile all Apple targets
@@ -22,8 +26,10 @@ jobs:
   services:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0, Node 24
         with:
           go-version-file: services/go.mod
           cache: false
@@ -31,5 +37,5 @@ jobs:
         working-directory: services
       - run: go vet ./...
         working-directory: services
-      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - run: GOTOOLCHAIN="$(go env GOVERSION)" go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
         working-directory: services
