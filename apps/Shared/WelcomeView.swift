@@ -107,7 +107,7 @@ struct WelcomeView: View {
                 if busy { ProgressView("Working securely…") }
                 Divider()
                 Label("Free to use. No account required.", systemImage: "checkmark.shield").font(.callout).foregroundStyle(.secondary)
-                Text("Version 0.3.0 - PROXIMUS Research Labs Foundation").font(Theme.body(11)).foregroundStyle(Theme.muted)
+                Text("Version 0.3.1 - PROXIMUS Research Labs Foundation").font(Theme.body(11)).foregroundStyle(Theme.muted)
             }.frame(maxWidth: 480).padding(32).padding(.vertical, 20).frame(maxWidth: .infinity)
         }
         .background(Theme.background).disabled(busy).privacySensitive().errorAlert($error)

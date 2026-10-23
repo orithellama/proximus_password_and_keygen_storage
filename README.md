@@ -2,7 +2,7 @@
 
 Free, open-source app for passwords, passkeys, and wallet keys for Mac, iPhone, and iPad. Local encrypted storage, QR device enrollment, and optional self-hosted sync. All features are included, with no subscription or purchase required.
 
-**Version 0.3.0 - Apache-2.0 - PROXIMUS Research Labs Foundation**
+**Version 0.3.1 - Apache-2.0 - PROXIMUS Research Labs Foundation**
 
 ## Features
 
@@ -22,7 +22,32 @@ The sidebar links to [Proximus sign-up](https://www.proximus.sh/sign-up). A Prox
 
 The interface uses the original Proximus wings, Sora headings, Space Grotesk body text, and the dashboard’s light and dark palettes.
 
-## Requirements
+Screenshots on the product page are captured from the native Mac app with sample data. Regenerate the vault, wallet, recovery, and password-generator images with `python3 scripts/capture-previews.py`. Images and their dimensions are written to `build/launch/`. The capture views are compiled only in Debug builds and do not use the user's vault.
+
+## Install Proximus
+
+Official downloads are listed at [proximus.sh/proximus-app](https://www.proximus.sh/proximus-app). The Mac download becomes available after a Developer ID signed, notarized release is published and its exact SHA-256 checksum is pinned on the website. Local test packages are not offered through that download.
+
+### Mac disk image
+
+1. Download `Proximus-0.3.1-macOS.dmg` from the official download page.
+2. Open the disk image.
+3. Drag **Proximus** onto **Applications**.
+4. Eject the disk image and open Proximus from Applications.
+
+The packaged app includes its compiled code and cryptography. Xcode, Rust, Terminal, and a developer account are not required to install it. Requires an Apple silicon Mac with macOS 14 or later. Configure Proximus under **AutoFill & Passwords** to use the signed extension.
+
+Updates replace the app bundle while keeping its separate data store. Standalone source builds and provisioned releases use different vault containers. Before moving an existing standalone vault to the signed app, save an encrypted recovery kit including any local wallet keys, retain its backup password, and restore it in the signed app. Keep the original installation until recovery is verified. Standard `.proximusvault` exports exclude wallet keys.
+
+### iPhone and iPad installation links
+
+For distribution without a public App Store listing, Proximus uses the TestFlight workflow. Install Apple's free TestFlight app once, open the Proximus invitation link when published, and tap **Install**. Xcode, a cable, and Developer Mode are not needed by TestFlight users. The website will show the invitation once a build is available. No invitation has been configured yet.
+
+The publisher needs Apple Developer Program enrollment, a signed upload, and the first external TestFlight review. Each TestFlight build expires after 90 days, so it needs replacement builds. App Store distribution is the permanent installation route for ordinary users. A GitHub IPA download or pairing QR does not bypass Apple's installation requirements. Region-specific alternative distribution has separate eligibility and account requirements. [Apple TestFlight workflow](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/), [Apple Web Distribution](https://developer.apple.com/support/web-distribution-eu/)
+
+All Proximus application code, the relay, build tools, installers, packaging scripts, and release validation remain open source under Apache-2.0. Packaged downloads are provided for convenience. The same source can be inspected and built independently. Dependency licenses and Apple SDK/tool requirements remain separate.
+
+## Source build requirements
 
 | Component | Requirement |
 | --- | --- |
@@ -51,7 +76,7 @@ The same installation is available from Terminal:
 ./install
 ```
 
-Browser AutoFill and passkey-provider integration require the signed setup below. iPhone and iPad use Xcode installation.
+Browser AutoFill and passkey-provider integration require the signed setup below. The following phone instructions are for source builders. End users use the published installation links.
 
 ### Apple signing and manual builds
 
@@ -102,7 +127,7 @@ bash scripts/build.sh macos
 
 Copy `build/macos/Build/Products/Release/Proximus.app` to `/Applications` or `~/Applications`. Keep the embedded AutoFill extension inside the application bundle.
 
-### iPhone and iPad without the App Store
+### iPhone and iPad source installation
 
 After configuring the Apple signing team above, connect and unlock the device, approve **Trust This Computer**, and enable **Developer Mode**. Run:
 
@@ -349,7 +374,7 @@ Raw scan output and build/test logs are local artifacts under `build/security-au
 
 ## Version control and releases
 
-Version 0.3.0 adds local profile setup with device unlock, opt-in encrypted recovery kits, custom read-only RPC settings, and security fixes. Version 0.2.0 introduced the Proximus name, BIP-39 generation, and wallet key storage. Bundle identifiers and existing vault paths are unchanged. The installer retains the previous app bundle. Upgrade all paired devices before adding wallet records, because older versions cannot read the new item kind.
+Version 0.3.1 adds DMG packaging, source revision metadata, signed release validation, GitHub publication tooling, and iOS distribution archive commands. Version 0.3.0 added local profile setup with device unlock, opt-in encrypted recovery kits, custom read-only RPC settings, and security fixes. Version 0.2.0 introduced the Proximus name, BIP-39 generation, and wallet key storage. Bundle identifiers and existing vault paths are unchanged. The installer retains the previous app bundle. Upgrade all paired devices before adding wallet records, because older versions cannot read the new item kind.
 
 `VERSION` matches `MARKETING_VERSION` in `Config/Base.xcconfig` and the Rust crate version. Vault format version `1` is independent of the application version. Unsupported formats are rejected.
 
@@ -359,18 +384,120 @@ git log --oneline
 git switch -c feature/short-description
 ```
 
-Release tags use `vMAJOR.MINOR.PATCH`. After updating the version files:
+Release tags use `vMAJOR.MINOR.PATCH`. The next packaged release is **v0.3.1**, build **4**. The public artifact is `Proximus-0.3.1-macOS.dmg`.
+
+### Maintainer signing setup
+
+The release publisher enrolls in the [Apple Developer Program](https://developer.apple.com/help/account/membership/program-enrollment/). Apple's standard annual fee is USD 99, with regional pricing where available. Users downloading Proximus do not need this membership.
+
+1. Add the enrolled Apple account in Xcode Settings → Accounts.
+2. Create or import the **Developer ID Application** certificate and its private key into the login Keychain for Mac distribution.
+3. Configure `Config/Local.xcconfig` with the team and owned bundle prefix. Register the app, extension, shared App Group, Keychain group, and AutoFill capabilities. Developer ID provisioning must cover the Mac entitlements.
+4. Store notarization credentials in Keychain. This command prompts for the app-specific password:
+
+```sh
+xcrun notarytool store-credentials ProximusNotary \
+  --apple-id APPLE_ACCOUNT_EMAIL --team-id YOURTEAMID
+```
+
+Signing and notarization do not remove the open-source license or require an App Store listing for the Mac app. Certificates, signing profiles, account credentials, and notarization secrets are not committed.
+
+### Build the public Mac DMG
+
+Commit the reviewed source, then run:
 
 ```sh
 bash scripts/verify.sh --apple
-bash scripts/build.sh macos
-# Sign with Developer ID, submit to Apple notarization, and staple the ticket.
-PROXIMUS_RELEASE_TEAM_ID=YOURTEAMID bash scripts/package-mac.sh
+export PROXIMUS_RELEASE_TEAM_ID=YOURTEAMID
+export PROXIMUS_NOTARY_PROFILE=ProximusNotary
+bash scripts/release-mac.sh
 ```
 
-The package script requires the expected 10-character Apple team ID, a Developer ID Application signature, a stapled notarization ticket, and Gatekeeper acceptance. Ad-hoc local builds are rejected. It writes a ZIP, SHA-256 checksum, dependency manifest, and `.release.json` containing the exact download URL, byte count, and hash under `dist/`. Public Mac distribution uses Developer ID signing and Apple notarization. iPhone and iPad archives use the selected development or registered-device distribution profile. [Apple notarization](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
+`release-mac.sh` builds the Rust library, creates an Xcode archive, exports with Developer ID, notarizes and staples the app, builds the drag-to-Applications DMG, then signs, notarizes, and staples the DMG. The app and AutoFill extension must use the expected team. Debug entitlements, dirty source builds, stale versions, oversized artifacts, and replacement of an existing version's public DMG are rejected.
 
-Build output, vault files, local signing configuration, environment files, and private keys are excluded from Git. CI compiles Apple targets and runs Rust, Swift, and Go checks.
+The app embeds `ProximusSourceRevision` and `ProximusSourceDirty`. Public packaging requires the current clean source commit. The source identifier connects the artifact to its source history, but does not claim byte-for-byte reproducible compilation.
+
+| Output | Purpose |
+| --- | --- |
+| `dist/Proximus-0.3.1-macOS.dmg` | End-user installer |
+| `dist/Proximus-0.3.1-macOS.dmg.sha256` | Checksum of the final stapled DMG |
+| `dist/Proximus-0.3.1-macOS.dmg.release.json` | Exact version, URL, hash, byte count, source commit, and distribution type |
+| `dist/Proximus-0.3.1-dependencies.json` | Cargo dependency inventory |
+| `dist/Proximus-0.3.1-release-notes.txt` | Release text generated from this README |
+
+For an already exported Developer ID app, use `bash scripts/package-mac.sh --app /path/to/Proximus.app`. Signing and notarization checks still apply. [Apple notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)
+
+### Build a local DMG without Apple enrollment
+
+```sh
+bash scripts/build.sh local
+bash scripts/package-mac.sh --local
+```
+
+This creates `dist/local/Proximus-0.3.1-macOS-local.dmg` containing the compiled app and an Applications shortcut. It needs no developer tools on the receiving Mac, but its ad-hoc signature does not satisfy normal public Gatekeeper distribution. The AutoFill extension is excluded. Use it to inspect the installer while setting up enrollment. The public website and publication script reject local packages. The public DMG requires the signed procedure above.
+
+### Publish to GitHub Releases
+
+```sh
+gh auth login
+# Push the reviewed source commit to the official repository first.
+git push origin main
+PROXIMUS_RELEASE_TEAM_ID=YOURTEAMID python3 scripts/publish-release.py
+```
+
+Use `--draft` to retain a private draft instead of publishing. The command rechecks the final DMG hash and size, Developer ID team, notarization, and the source/version embedded in its mounted application. It checks that the source commit exists in the official GitHub repository. Assets are uploaded into a draft before the release becomes public. Existing release tags are never overwritten.
+
+The DMG belongs in **GitHub Releases**. The separate **Packages** section is for registries such as container images and npm packages, and is not needed for this installer. GitHub also supplies source archives from the release tag. [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases), [GitHub Packages](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages)
+
+### Enable the trusted website download
+
+After publication, copy `version`, `filename`, `url`, `sha256`, and `bytes` from the reviewed DMG manifest into `appRelease` in the website's `lib/proximus-app/release.ts`, and deploy that website change. The publication command prints those fields. Do not populate the approved hash automatically from a live release API or an adjacent downloadable checksum file.
+
+Before returning installer bytes, `/api/proximus-app/download` checks the exact repository and asset URL, allowed redirects, byte count, size limit, and SHA-256 hash. Missing approval, changed bytes, untrusted redirects, and unavailable assets block delivery. macOS independently checks the Developer ID signature and notarization ticket. Checksums establish artifact identity, not the absence of vulnerabilities.
+
+The website streams the verified copy in bounded chunks after the complete checksum check. This supports installers larger than Vercel's buffered-response limit without delivering unchecked bytes. The download route permits two concurrent downloads per server instance and holds each slot until delivery ends or is canceled. [Vercel response streaming](https://vercel.com/kb/guide/how-to-bypass-vercel-body-size-limit-serverless-functions)
+
+### Package and upload for TestFlight
+
+Create the app record in App Store Connect using the registered iOS bundle identifier. Configure the app and AutoFill extension profiles with the same team and groups. Use a current Xcode/SDK accepted by App Store Connect. Then:
+
+```sh
+PROXIMUS_RELEASE_TEAM_ID=YOURTEAMID bash scripts/package-ios.sh
+# Or upload the archive directly through the Xcode account:
+PROXIMUS_RELEASE_TEAM_ID=YOURTEAMID bash scripts/package-ios.sh --upload
+```
+
+The export command creates an archive and an App Store Connect distribution IPA under `build/distribution/ios`. The upload command submits the archive to App Store Connect. Move an existing archive aside before rebuilding. Use `PROXIMUS_BUILD_NUMBER` to set a new positive build number for another upload of the same version.
+
+Complete App Store Connect processing, encryption questions, TestFlight test information, and the first external review. Create an external testing group and a public invitation link, then add that link to the website. The link is separate from the vault pairing QR. A pairing QR enrolls an app that is already installed. [TestFlight distribution](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/)
+
+Build output, vault files, local signing configuration, environment files, private keys, archives, and disk images are excluded from Git. CI compiles Apple targets and runs Rust, Swift, Go, and release validation checks.
+
+### Release text
+
+Generate the upload-ready text with `python3 scripts/prepare-release-notes.py`. The following is the publication copy for the signed release:
+
+<!-- release-notes:start -->
+## Proximus 0.3.1
+
+Free, open-source storage for passwords, passkeys, secure notes, and wallet keys.
+
+- Native Mac app with a drag-to-Applications DMG. No Xcode or developer tools needed to install.
+- Encrypted local vaults with Face ID or Touch ID unlock on supported devices.
+- Password generation, BIP-39 passphrase generation, and password AutoFill.
+- Solana, EVM, Bitcoin, and Monero wallet addresses, keys, and recovery.
+- Optional encrypted recovery kits saved to iCloud Drive or a chosen local folder.
+- QR device pairing, nearby encrypted sync, and an optional self-hosted relay.
+- Custom RPC endpoints for read-only connection checks.
+- Developer ID signing, Apple notarization, and a published SHA-256 checksum for the Mac installer.
+
+Download the Mac DMG, open it, and drag Proximus to Applications. Requires an Apple silicon Mac with macOS 14 or later.
+
+Wallet support covers keys, addresses, and recovery. Transaction signing and sending are not included. iPhone and iPad source is included, with a separate TestFlight invitation to follow once distribution is configured.
+
+Source: https://github.com/orithellama/proximus_password_and_keygen_storage
+License: Apache-2.0. All Proximus features are free.
+<!-- release-notes:end -->
 
 ## Repository layout
 
@@ -397,7 +524,7 @@ Passwords, passkeys and wallet keys. Free and open source.
 
 Local encrypted vaults, nearby sync and optional encrypted iCloud recovery kits.
 
-In development. Source + install guide: proximus.sh/proximus-app
+Source + installation: proximus.sh/proximus-app
 ```
 
 ## License

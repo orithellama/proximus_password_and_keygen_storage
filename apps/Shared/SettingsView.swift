@@ -41,7 +41,7 @@ struct SettingsView: View {
                         TextField("Self-hosted HTTPS relay URL", text: $relayURL)
                         SecureField("Relay enrollment key", text: $enrollment)
                         Button("Connect relay") { run { guard let url = URL(string: relayURL) else { throw ProximusError.invalid("Enter a valid relay URL.") }; try await session.connectRelay(url: url, enrollment: enrollment); enrollment = "" } }.disabled(relayURL.isEmpty || enrollment.isEmpty)
-                        Text("Local vault use needs no server. Deploy the included relay on your own infrastructure. Proximus-hosted sync is not configured in this development build.").font(.caption).foregroundStyle(.secondary)
+                        Text("Local vault use needs no server. Deploy the included relay on your own infrastructure. Proximus-hosted sync is not configured.").font(.caption).foregroundStyle(.secondary)
                     }
                     if session.conflictingHead != nil {
                         Button("Review conflict: keep both versions") { mergeNotice = true }
@@ -61,7 +61,7 @@ struct SettingsView: View {
                     Text("A paired device has access to the password vault. If one is lost, rotate exposed account passwords and move to a fresh vault and relay namespace. Removing a name would not revoke its cryptographic access.").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("About") {
-                    Text("Proximus - 0.3.0")
+                    Text("Proximus - 0.3.1")
                     Text("Free to use. All features included.").font(.caption)
                     Text("Open source under Apache-2.0. Copyright PROXIMUS Research Labs Foundation.").font(.caption)
                     Text("AES-256-GCM encrypted vaults. Argon2id recovery protection. Hardware-bound passkeys using Secure Enclave.").font(.caption).foregroundStyle(.secondary)

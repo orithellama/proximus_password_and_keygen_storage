@@ -8,13 +8,19 @@ struct PreviewCaptureView: View {
     @State private var selection: UUID?
     @State private var error = ""
     private let device = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+    private var detailScreen: Bool {
+        ["--wallet-screen", "--recovery-screen", "--generator-screen"].contains { ProcessInfo.processInfo.arguments.contains($0) }
+    }
     var body: some View {
         Group {
             if let session {
                 if ProcessInfo.processInfo.arguments.contains("--unlock-screen") { WelcomeView(session: session, pairingLink: .constant(nil)) }
+                else if ProcessInfo.processInfo.arguments.contains("--wallet-screen") { WalletCreator(session: session, created: { _ in }) }
+                else if ProcessInfo.processInfo.arguments.contains("--recovery-screen") { NavigationStack { RecoverySettingsView(session: session) } }
+                else if ProcessInfo.processInfo.arguments.contains("--generator-screen") { GeneratorView() }
                 else { VaultView(session: session, initialSelection: selection) }
             } else { Text(error.isEmpty ? "Rendering app preview…" : error) }
-        }.frame(minWidth: 1180, minHeight: 760)
+        }.frame(minWidth: detailScreen ? 760 : 1180, minHeight: 760)
             .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("--dark") ? .dark : .light)
             .task {
                 do {
@@ -42,6 +48,7 @@ struct PreviewCaptureView: View {
                     try await Task.sleep(for: .seconds(2))
                     guard let path = ProcessInfo.processInfo.environment["PROXIMUS_PREVIEW_OUTPUT"] else { return }
                     guard let window = NSApplication.shared.windows.first(where: { $0.contentView != nil && $0.isVisible }), let view = window.contentView?.superview ?? window.contentView else { throw ProximusError.unavailable("Preview window is unavailable.") }
+                    window.setContentSize(NSSize(width: detailScreen ? 820 : 1180, height: 800))
                     NSApplication.shared.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
                     try await Task.sleep(for: .milliseconds(300))
                     window.displayIfNeeded()

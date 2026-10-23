@@ -59,6 +59,8 @@ for platform in ["macOS", "iOS"]:
             "CFBundleShortVersionString": "$(MARKETING_VERSION)", "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
             "ProximusAppGroup": "$(PROXIMUS_APP_GROUP)", "ProximusKeychainGroup":"$(PROXIMUS_KEYCHAIN_GROUP)",
             "ProximusSigningTeam": "$(DEVELOPMENT_TEAM)",
+            "ProximusSourceRevision": "$(PROXIMUS_SOURCE_REVISION)",
+            "ProximusSourceDirty": "$(PROXIMUS_SOURCE_DIRTY)",
             "ASCredentialProviderExtensionCapabilities": capabilities,
             "ITSAppUsesNonExemptEncryption": True,
             "NSFaceIDUsageDescription": "Use Face ID to unlock your vault, approve passkeys, and reveal wallet recovery details.",

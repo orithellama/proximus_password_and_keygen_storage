@@ -11,7 +11,10 @@ case "$platform" in
 esac
 [[ -d Vendor/ProximusCrypto.xcframework ]] || bash scripts/build-crypto.sh
 python3 scripts/generate-project.py
-options=()
+revision="$(git rev-parse HEAD)"
+dirty=false
+[[ -z "$(git status --porcelain --untracked-files=normal)" ]] || dirty=true
+options=("PROXIMUS_SOURCE_REVISION=$revision" "PROXIMUS_SOURCE_DIRTY=$dirty")
 if [[ "${2:-}" == '--unsigned' ]]; then options+=(CODE_SIGNING_ALLOWED=NO); fi
 if [[ "$platform" == local ]]; then options+=(CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM=); fi
 xcodebuild -project ProximusPasswords.xcodeproj -scheme "$scheme" \

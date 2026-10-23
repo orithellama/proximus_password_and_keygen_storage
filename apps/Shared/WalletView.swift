@@ -102,7 +102,7 @@ struct WalletRecoveryView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Anyone with these recovery details can control this wallet. Write them down and keep them somewhere private. They are not included in your vault recovery kit.")
+                    Text("Anyone with these recovery details can control this wallet. Write them down and keep them somewhere private. Standard vault exports exclude wallet keys. Optional encrypted recovery kits include keys held on this device.")
                     Text(metadata.address).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                 }
                 if let material {

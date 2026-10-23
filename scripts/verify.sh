@@ -16,6 +16,7 @@ xcrun swift test --scratch-path .build/tests --cache-path .cache/swift --disable
     go test -race ./...
 )
 python3 scripts/check-release.py
+python3 -m unittest discover -s Tests/ReleaseTests
 if [[ "${1:-}" == '--apple' ]]; then
     bash scripts/build.sh macos --unsigned
     bash scripts/build.sh ios --unsigned
