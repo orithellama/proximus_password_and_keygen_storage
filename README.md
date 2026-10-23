@@ -11,7 +11,7 @@ Free, open-source password manager and passkey provider for Mac, iPhone, and iPa
 - Password AutoFill with exact HTTPS origin matching
 - Secure Enclave passkeys and device unlock
 - Encrypted backups, recovery, and CSV import
-- QR enrollment and self-hosted encrypted sync
+- QR enrollment, nearby sync over direct peer-to-peer Wi-Fi, and self-hosted encrypted sync
 
 The sidebar links to [Proximus sign-up](https://www.proximus.sh/sign-up). A Proximus account is optional and is not required to use the password manager.
 
@@ -43,7 +43,7 @@ The installer builds the app, verifies its local code signature, installs it at 
 The same installation is available from Terminal:
 
 ```sh
-bash scripts/install-mac.sh
+./install
 ```
 
 Browser AutoFill and passkey-provider integration require the signed setup below. iPhone and iPad use Xcode installation.
@@ -99,6 +99,21 @@ Copy `build/macos/Build/Products/Release/Proximus Passwords.app` to `/Applicatio
 
 ### iPhone and iPad without the App Store
 
+After configuring the Apple signing team above, connect and unlock the device, approve **Trust This Computer**, and enable **Developer Mode**. Run:
+
+```sh
+./install --phone
+```
+
+The installer selects the only connected iPhone or iPad, or offers a choice when several are connected. It builds with automatic provisioning, verifies the signed application, installs it, and opens it. The phone can then scan the Mac’s pairing QR code. The first signing setup can require completing App Groups and AutoFill capability registration in Xcode. Apple approval screens cannot be skipped by a pairing QR code.
+
+```sh
+./install --phone --list
+./install --phone --device DEVICE_ID --team TEAM_ID --bundle-prefix org.yourname.passwords
+```
+
+Build logs are saved in `build/install-phone.log`. An already trusted device can also be selected over an Xcode-supported network connection. A connected USB cable is the initial setup path. Manual Xcode installation remains available:
+
 1. Connect the device to the Mac and trust the Mac on the device.
 2. Enable **Developer Mode** in the device’s Privacy & Security settings.
 3. Open the Xcode project and select `ProximusPasswords-iOS`.
@@ -140,9 +155,15 @@ The recovery key can be remembered in the device’s local Keychain. **Settings 
 5. Compare the six-digit code on both screens.
 6. Approve the matching code on both devices.
 
-Pairing works over a local network without internet access. Invitations expire after two minutes and accept one connection. The QR contains a temporary public key, session identifier, and expiry. The encrypted transfer contains the password vault, its authenticated checkpoint, and optional relay configuration. Passkey private keys remain on their original device.
+Pairing uses Network.framework with peer-to-peer Wi-Fi enabled. Devices can connect directly without a router or internet access, or through an existing local network. Wi-Fi must remain enabled, and Local Network access must be allowed. Invitations expire after two minutes and accept one connection. The QR contains a temporary public key, session identifier, and expiry. The encrypted transfer contains the password vault, its authenticated checkpoint, and optional relay configuration. Passkey private keys remain on their original device.
 
-Ongoing remote synchronization uses the optional relay. Each device continues to read, edit, and generate passwords while offline.
+### Nearby sync after pairing
+
+Unlock the vault on both devices and open **Nearby sync** on each. The apps discover and authenticate each other and exchange encrypted changes automatically for that session. A new QR scan is not required. Discovery identifiers rotate for each session and do not contain vault identifiers or device names. Authentication requires possession of the existing vault key, and an ephemeral P-256 exchange derives fresh session encryption keys. Directional sequence numbers reject reordered or replayed records. Conflicting edits require an explicit keep-both merge.
+
+Keep both apps open and Wi-Fi enabled. A shared Wi-Fi network and internet access are unnecessary. Nearby sync ends when its screen closes, the vault locks, or its two-minute window expires. Each session is limited to 64 MiB of message data. This transport uses Apple peer-to-peer Wi-Fi, not Bluetooth-only mesh networking. [Apple peer-to-peer networking](https://developer.apple.com/forums/thread/751839)
+
+Remote synchronization between devices outside nearby range uses the optional relay. Each device continues to read, edit, and generate passwords while offline.
 
 ## Password AutoFill and passkeys
 
@@ -232,7 +253,7 @@ cd services
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 ```
 
-Tests cover known-answer encryption vectors, corrupted snapshots, recovery factors, concurrent edits, backup restoration, exact-origin matching, pairing transcripts, WebAuthn encoding, CSV imports, and relay compare-and-swap. Physical-device verification covers provisioning, biometric prompts, browser registration and assertions, password AutoFill, and local-network pairing.
+Tests cover known-answer encryption vectors, corrupted snapshots, recovery factors, concurrent edits, backup restoration, exact-origin matching, pairing transcripts, nearby authentication and replay rejection, encrypted socket transfers, nearby push/pull and conflict handling, WebAuthn encoding, CSV imports, and relay compare-and-swap. Physical-device verification covers provisioning, biometric prompts, browser registration and assertions, password AutoFill, and local-network pairing.
 
 Go 1.27.3 includes the October 2026 X.509 security update. [Go release history](https://go.dev/doc/devel/release)
 
@@ -261,6 +282,7 @@ Build output, vault files, local signing configuration, environment files, and p
 ## Repository layout
 
 ```text
+install                  Mac and iPhone/iPad installation entry point
 apps/Shared/             Native Mac, iPhone, and iPad views
 apps/AutoFill/           Password and passkey provider extension
 apps/Brand/              Original Proximus logo assets
@@ -276,13 +298,17 @@ scripts/                Build, verification, branding, packaging
 ## Announcement
 
 ```text
-Introducing Proximus Passwords for Mac, iPhone and iPad. 100% free, with local storage and self-hosted encrypted sync.
+Introducing Proximus Passwords.
 
-After all the DMs:
-1. Check your accounts.
-2. Replace weak, reused or exposed passwords.
-3. Enable passkeys or strong MFA.
+Free. Open source. Encrypted on your devices.
 
+Strong passwords, hardware-bound passkeys, device pairing and optional self-hosted sync.
+
+Built for Mac, iPhone and iPad.
+
+No subscriptions. No paid tiers.
+
+proximus.sh
 ```
 
 ## License

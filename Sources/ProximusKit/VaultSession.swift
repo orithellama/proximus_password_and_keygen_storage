@@ -167,7 +167,22 @@ import Combine
     public func mergeConflict() async throws {
         guard let remote = conflictingHead, let state, let key else { throw ProximusError.locked }
         self.state = try key.withData { try repository.merge(local: state, remote: remote, key: $0) }
-        conflictingHead = nil; try reload(); try await synchronize()
+        conflictingHead = nil; try reload()
+        if relay != nil { try await synchronize() }
+        else { syncStatus = "Changes merged. Sync nearby again to share them." }
+    }
+    func nearbyKey() throws -> Data {
+        guard let key, isUnlocked else { throw ProximusError.locked }
+        return key.withData { $0 }
+    }
+    func finishNearby(_ result: SyncResult) async throws {
+        guard isUnlocked else { throw ProximusError.locked }
+        try reload()
+        if case .conflict(let head) = result {
+            conflictingHead = head; syncStatus = "Review changes from a nearby device"
+        } else { syncStatus = "Nearby sync complete" }
+        if indexEnabled, let contents { await refreshIndex(contents.items) }
+        touch()
     }
     public func pairingBundle(device: UUID, name: String) throws -> PairingBundle {
         guard var contents, let key else { throw ProximusError.locked }

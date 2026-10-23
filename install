@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+case "${1:-}" in
+    '') exec bash scripts/install-mac.sh ;;
+    --phone) shift; exec python3 scripts/install-phone.py "$@" ;;
+    --help|-h)
+        echo 'Usage: ./install                     Build, install, and open the Mac app.'
+        echo '       ./install --phone             Build, install, and open the iPhone/iPad app.'
+        echo '       ./install --phone --help      Phone signing and device options.' ;;
+    *) echo 'Unknown option. Run ./install --help.' >&2; exit 2 ;;
+esac

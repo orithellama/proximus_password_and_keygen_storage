@@ -37,7 +37,14 @@ public final class BoundedHTTP: NSObject, URLSessionDataDelegate, URLSessionTask
     }
 }
 
-public struct RelayClient {
+public protocol VaultTransport {
+    func head() async throws -> String?
+    func get(_ hash: String) async throws -> Data
+    func put(_ hash: String, data: Data) async throws
+    func setHead(_ hash: String, expected: String?) async throws
+}
+
+public struct RelayClient: VaultTransport {
     public let configuration: RelayConfiguration
     public let vaultID: UUID
     public init(configuration: RelayConfiguration, vaultID: UUID) throws { self.configuration = try configuration.validated(); self.vaultID = vaultID }
@@ -84,8 +91,8 @@ public enum SyncResult { case unchanged, updated(VaultState), conflict(remote: S
 
 public struct VaultSync {
     public let repository: VaultRepository
-    public let client: RelayClient
-    public init(repository: VaultRepository, client: RelayClient) { self.repository = repository; self.client = client }
+    public let client: any VaultTransport
+    public init(repository: VaultRepository, client: any VaultTransport) { self.repository = repository; self.client = client }
     public func synchronize(key: Data, expected: VaultState) async throws -> SyncResult {
         guard try repository.state() == expected else { throw ProximusError.conflict }
         let remote = try await client.head()

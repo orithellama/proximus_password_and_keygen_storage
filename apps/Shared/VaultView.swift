@@ -9,6 +9,7 @@ struct VaultView: View {
     @State private var editing: VaultItem?
     @State private var settings = false
     @State private var pairing = false
+    @State private var nearby = false
     @State private var generator = false
     @State private var error: ErrorMessage?
     var initialSelection: UUID? = nil
@@ -26,6 +27,7 @@ struct VaultView: View {
         .sheet(item: $editing) { item in ItemEditor(session: session, item: item) }
         .sheet(isPresented: $settings) { SettingsView(session: session) }
         .sheet(isPresented: $pairing) { PairingView(session: session, isHost: true) }
+        .sheet(isPresented: $nearby) { NearbySyncView(session: session) }
         .sheet(isPresented: $generator) { GeneratorView() }
     }
     private var sidebar: some View {
@@ -44,6 +46,7 @@ struct VaultView: View {
                 Section("Tools") {
                     Button { generator = true } label: { Label("Password generator", systemImage: "wand.and.stars") }.buttonStyle(.plain)
                     Button { pairing = true } label: { Label("Pair a device", systemImage: "qrcode") }.buttonStyle(.plain)
+                    Button { nearby = true } label: { Label("Nearby sync", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.plain)
                     Button { settings = true } label: { Label("Settings & backup", systemImage: "gearshape") }.buttonStyle(.plain)
                 }
                 Section {

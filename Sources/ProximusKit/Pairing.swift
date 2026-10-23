@@ -52,7 +52,7 @@ public enum PairingCrypto {
 private struct PairingHello: Codable { var publicKey: Data; var proof: Data }
 private struct PairingPeer: Codable { var id: UUID; var name: String }
 
-private final class FramedConnection {
+final class FramedConnection {
     let connection: NWConnection
     init(_ connection: NWConnection) { self.connection = connection }
     func send(_ data: Data) async throws {
@@ -65,10 +65,10 @@ private final class FramedConnection {
             })
         }
     }
-    func receive() async throws -> Data {
+    func receive(maximumBytes: Int = VaultCrypto.maximumPayload * 2) async throws -> Data {
         let prefix = try await exact(4)
         let length = prefix.reduce(0) { ($0 << 8) | Int($1) }
-        guard (1...VaultCrypto.maximumPayload * 2).contains(length) else { throw ProximusError.authentication }
+        guard (1...maximumBytes).contains(length) else { throw ProximusError.authentication }
         return try await exact(length)
     }
     private func exact(_ length: Int) async throws -> Data {
@@ -150,7 +150,7 @@ private final class FramedConnection {
                 connection.start(queue: .global(qos: .userInitiated))
                 self.worker = Task {
                     do {
-                        let hello = try Encoding.decode(PairingHello.self, from: await wire.receive())
+                        let hello = try Encoding.decode(PairingHello.self, from: await wire.receive(maximumBytes: 4096))
                         guard invitation.expires > Date() else { throw ProximusError.authentication }
                         let sessionKey = try PairingCrypto.key(privateKey: key, peer: hello.publicKey, invitation: invitation, clientPublicKey: hello.publicKey)
                         let peer = try Encoding.decode(PairingPeer.self, from: VaultCrypto.open(hello.proof, key: sessionKey, context: PairingCrypto.context("hello", invitation: invitation)))
@@ -175,7 +175,7 @@ private final class FramedConnection {
     }
     public func join(link: String, deviceID: UUID, name: String, install: @escaping (PairingBundle) throws -> Void) throws {
         let invitation = try PairingInvitation.parse(link)
-        try begin(); status = "Connecting over your local network…"
+        try begin(); status = "Connecting to your nearby device…"
         let connection = NWConnection(to: .service(name: invitation.service, type: "_proximus-pair._tcp", domain: "local.", interface: nil), using: parameters())
         let wire = FramedConnection(connection); self.wire = wire
         connection.start(queue: .global(qos: .userInitiated))

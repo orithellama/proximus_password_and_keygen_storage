@@ -16,7 +16,14 @@ struct PairingView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     Image(systemName: "iphone.and.arrow.forward").font(.system(size: 40)).foregroundStyle(Theme.accent)
                     Text(isHost ? "Your vault, on another device." : "Bring your vault with you.").font(.largeTitle.bold())
-                    Text("Install Proximus on both devices first. Keep them on the same trusted local network. Pairing does not require an internet connection.").foregroundStyle(.secondary)
+                    Text("Open Proximus on both devices and keep them nearby with Wi-Fi turned on. No router or internet connection is required.").foregroundStyle(.secondary)
+                    #if os(macOS)
+                    if isHost {
+                        DisclosureGroup("Install on your iPhone or iPad") {
+                            Text("Connect your device to this Mac and approve Trust This Computer. Enable Developer Mode, then run ./install --phone from your cloned repository. The installer uses your Apple signing team to build, install, and open the phone app. Scan this QR code after installation.").font(.callout).padding(.top, 6)
+                        }
+                    }
+                    #endif
                     if pairing.complete {
                         Label("Device paired", systemImage: "checkmark.circle.fill").font(.title2).foregroundStyle(Theme.accent)
                         Text("Passwords and notes are available. Passkey private keys stay on their original device. Register a separate passkey on each device where the website supports it.")
