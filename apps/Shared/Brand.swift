@@ -62,7 +62,7 @@ struct Brand: View {
             ProximusMark(size: compact ? 24 : 32)
             VStack(alignment: .leading, spacing: 3) {
                 Text("PROXIMUS").font(Theme.heading(compact ? 17 : 21)).tracking(-0.7)
-                if !compact { Text("Passwords").font(Theme.body(13)).foregroundStyle(Theme.muted) }
+                if !compact { Text("Your private vault").font(Theme.body(13)).foregroundStyle(Theme.muted) }
             }
         }.foregroundStyle(Theme.foreground)
     }

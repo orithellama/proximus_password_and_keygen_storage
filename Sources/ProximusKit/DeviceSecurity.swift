@@ -80,6 +80,31 @@ private struct HardwareEnvelope: Codable {
     var ciphertext: Data
 }
 
+/// Wallet secrets use a separate Secure Enclave key and domain from vault unlock.
+enum WalletProtection {
+    static func seal(_ plain: Data, context: Data) throws -> Data {
+        guard SecureEnclave.isAvailable else { throw ProximusError.unavailable("Wallet keys require a device with Secure Enclave and a device passcode.") }
+        let hardware = try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: HardwareUnlock.accessControl())
+        let ephemeral = P256.KeyAgreement.PrivateKey()
+        let secret = try ephemeral.sharedSecretFromKeyAgreement(with: hardware.publicKey)
+        var wrapping = secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: context, sharedInfo: Data("wallet-wrap".utf8), outputByteCount: 32).withUnsafeBytes { Data($0) }
+        defer { wrapping.resetBytes(in: 0..<wrapping.count) }
+        return try Encoding.encode(HardwareEnvelope(keyReference: hardware.dataRepresentation, ephemeralPublicKey: ephemeral.publicKey.x963Representation, ciphertext: VaultCrypto.seal(plain, key: wrapping, context: context)))
+    }
+    static func open(_ data: Data, context: Data) throws -> Data {
+        let envelope = try Encoding.decode(HardwareEnvelope.self, from: data)
+        let auth = LAContext()
+        auth.localizedReason = "Show this wallet’s recovery phrase and private keys"
+        auth.touchIDAuthenticationAllowableReuseDuration = 0
+        let hardware = try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: envelope.keyReference, authenticationContext: auth)
+        let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: envelope.ephemeralPublicKey)
+        let secret = try hardware.sharedSecretFromKeyAgreement(with: ephemeral)
+        var wrapping = secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: context, sharedInfo: Data("wallet-wrap".utf8), outputByteCount: 32).withUnsafeBytes { Data($0) }
+        defer { wrapping.resetBytes(in: 0..<wrapping.count) }
+        return try VaultCrypto.open(envelope.ciphertext, key: wrapping, context: context)
+    }
+}
+
 public enum HardwareUnlock {
     public static var isAvailable: Bool { SecureEnclave.isAvailable }
     private static func account(_ vault: UUID) -> String { "hardware-unlock/" + vault.uuidString }

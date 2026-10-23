@@ -1,10 +1,10 @@
 import Foundation
 
 public enum ItemKind: String, Codable, CaseIterable, Identifiable {
-    case password, passkey, note
+    case password, passkey, note, wallet
     public var id: String { rawValue }
-    public var label: String { switch self { case .password: return "Password"; case .passkey: return "Passkey"; case .note: return "Secure note" } }
-    public var symbol: String { switch self { case .password: return "key.horizontal"; case .passkey: return "person.badge.key"; case .note: return "note.text" } }
+    public var label: String { switch self { case .password: return "Password"; case .passkey: return "Passkey"; case .note: return "Secure note"; case .wallet: return "Wallet" } }
+    public var symbol: String { switch self { case .password: return "key.horizontal"; case .passkey: return "person.badge.key"; case .note: return "note.text"; case .wallet: return "wallet.bifold" } }
 }
 
 public struct PasskeyMetadata: Codable, Equatable {
@@ -27,13 +27,18 @@ public struct VaultItem: Codable, Identifiable, Equatable {
     public var favorite: Bool
     public var modifiedAt: Date
     public var passkey: PasskeyMetadata?
-    public init(id: UUID = UUID(), kind: ItemKind = .password, title: String = "", username: String = "", website: String = "", password: String = "", notes: String = "", collection: String = "", favorite: Bool = false, modifiedAt: Date = Date(), passkey: PasskeyMetadata? = nil) {
-        self.id = id; self.kind = kind; self.title = title; self.username = username; self.website = website; self.password = password; self.notes = notes; self.collection = collection; self.favorite = favorite; self.modifiedAt = modifiedAt; self.passkey = passkey
+    public var wallet: WalletMetadata?
+    public init(id: UUID = UUID(), kind: ItemKind = .password, title: String = "", username: String = "", website: String = "", password: String = "", notes: String = "", collection: String = "", favorite: Bool = false, modifiedAt: Date = Date(), passkey: PasskeyMetadata? = nil, wallet: WalletMetadata? = nil) {
+        self.id = id; self.kind = kind; self.title = title; self.username = username; self.website = website; self.password = password; self.notes = notes; self.collection = collection; self.favorite = favorite; self.modifiedAt = modifiedAt; self.passkey = passkey; self.wallet = wallet
     }
     public func validated() throws -> VaultItem {
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, title.utf8.count <= 256, username.utf8.count <= 2048, password.utf8.count <= 4096, notes.utf8.count <= 65536, collection.utf8.count <= 128 else { throw ProximusError.invalid("Add a title and keep this item within its size limits.") }
         if !website.isEmpty { _ = try DomainPolicy.origin(website) }
         if kind == .passkey { guard let passkey, !passkey.credentialID.isEmpty, (1...64).contains(passkey.userHandle.count) else { throw ProximusError.invalid("Invalid passkey metadata.") } }
+        if kind == .wallet {
+            guard let wallet, password.isEmpty, passkey == nil else { throw ProximusError.invalid("Wallet records contain public addresses only.") }
+            try wallet.validate()
+        } else if wallet != nil { throw ProximusError.invalid("Unexpected wallet metadata.") }
         return self
     }
 }

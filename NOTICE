@@ -1,9 +1,10 @@
-Proximus Passwords
+Proximus
 Copyright 2026 PROXIMUS Research Labs Foundation
 
 Licensed under the Apache License, Version 2.0.
 The Proximus name and marks are not licensed for endorsement by this software license.
 
-This product uses RustCrypto AES-GCM and Argon2 implementations and their dependencies.
+This product uses RustCrypto AES-GCM and Argon2, rust-bitcoin, rust-bip39,
+Dalek cryptography, monero-rs, and their dependencies.
 Dependency versions and individual license identifiers are recorded in Cargo.lock and
 the generated release dependency manifest.

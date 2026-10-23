@@ -95,9 +95,33 @@ import Combine
         try persist(contents)
         if indexEnabled { await refreshIndex(contents.items) }
     }
+    public func createWallet(network: WalletNetwork, title: String, recovery: String = "") async throws -> UUID {
+        guard isUnlocked else { throw ProximusError.locked }
+        let generation = lockGeneration, device = deviceID
+        let metadata = try await Task.detached(priority: .userInitiated) {
+            let material = try WalletCrypto.derive(network: network, recovery: recovery)
+            let metadata = material.metadata(network: network, deviceID: device)
+            try LocalWalletStore(deviceID: device).save(material, metadata: metadata)
+            return metadata
+        }.value
+        do {
+            guard isUnlocked, generation == lockGeneration else { throw ProximusError.locked }
+            let item = VaultItem(kind: .wallet, title: title, wallet: metadata)
+            try await save(item)
+            return item.id
+        } catch { try? LocalWalletStore(deviceID: device).remove(metadata); throw error }
+    }
+    public func revealWallet(_ metadata: WalletMetadata) async throws -> WalletMaterial {
+        guard isUnlocked, contents?.items.contains(where: { $0.wallet == metadata }) == true else { throw ProximusError.locked }
+        let generation = lockGeneration, device = deviceID
+        let material = try await Task.detached(priority: .userInitiated) { try LocalWalletStore(deviceID: device).reveal(metadata) }.value
+        guard isUnlocked, generation == lockGeneration else { throw ProximusError.locked }
+        touch(); return material
+    }
     public func delete(_ item: VaultItem) async throws {
         guard var contents else { throw ProximusError.locked }
         contents.items.removeAll { $0.id == item.id }; try persist(contents)
+        if let wallet = item.wallet, wallet.ownerDeviceID == deviceID, !contents.items.contains(where: { $0.wallet?.id == wallet.id }) { try LocalWalletStore(deviceID: deviceID).remove(wallet) }
         if let passkey = item.passkey, passkey.deviceID == deviceID { try PasskeySigner.remove(passkey.credentialID) }
         if indexEnabled { await refreshIndex(contents.items) }
     }

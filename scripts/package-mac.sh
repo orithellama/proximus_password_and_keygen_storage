@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 version="$(cat VERSION)"
-app='build/macos/Build/Products/Release/Proximus Passwords.app'
+app='build/macos/Build/Products/Release/Proximus.app'
 [[ -d "$app" ]] || { echo 'Build the signed Mac release first: bash scripts/build.sh macos' >&2; exit 1; }
 codesign --verify --strict --deep "$app"
 mkdir -p dist

@@ -11,6 +11,7 @@ struct VaultView: View {
     @State private var pairing = false
     @State private var nearby = false
     @State private var generator = false
+    @State private var walletCreator = false
     @State private var error: ErrorMessage?
     var initialSelection: UUID? = nil
     private var items: [VaultItem] {
@@ -29,6 +30,7 @@ struct VaultView: View {
         .sheet(isPresented: $pairing) { PairingView(session: session, isHost: true) }
         .sheet(isPresented: $nearby) { NearbySyncView(session: session) }
         .sheet(isPresented: $generator) { GeneratorView() }
+        .sheet(isPresented: $walletCreator) { WalletCreator(session: session) { id in selected = id; category = "wallet" } }
     }
     private var sidebar: some View {
             List(selection: $category) {
@@ -88,7 +90,7 @@ struct VaultView: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
                         if session.relay != nil { Button { Task { do { try await session.synchronize() } catch { self.error = ErrorMessage(error) } } } label: { Image(systemName: "arrow.triangle.2.circlepath") }.help("Sync encrypted vault") }
-                        Menu { Button("Password") { editing = VaultItem() }; Button("Secure note") { editing = VaultItem(kind: .note) } } label: { Image(systemName: "plus") }
+                        Menu { Button("Password") { editing = VaultItem() }; Button("Secure note") { editing = VaultItem(kind: .note) }; Button("Crypto wallet") { walletCreator = true } } label: { Image(systemName: "plus") }
                         Button { session.lock() } label: { Image(systemName: "lock") }.help("Lock vault")
                     }
                 }.navigationSplitViewColumnWidth(min: 280, ideal: 340)
@@ -100,7 +102,7 @@ struct VaultView: View {
             } else {
                 VStack(spacing: 20) {
                     ProximusMark(size: 64).foregroundStyle(Theme.accent)
-                    Text("Password vault").font(Theme.heading(24))
+                    Text("Your private vault").font(Theme.heading(24))
                     Text("Select an item to see its details.").font(Theme.body()).foregroundStyle(Theme.muted)
                     Text("Your vault works without an internet connection.").font(.caption).foregroundStyle(.secondary)
                 }.padding().frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.background)
@@ -141,6 +143,7 @@ struct ItemDetail: View {
                     }.padding().background(Theme.panel, in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.border))
                     Text("Use AutoFill for a checked website match. Copied passwords can be read by other software.").font(.caption).foregroundStyle(.secondary)
                 }
+                if let wallet = item.wallet { WalletDetails(session: session, metadata: wallet).id(wallet.id) }
                 if let passkey = item.passkey {
                     Label(passkey.deviceID == session.deviceID ? "Private key stays in this device’s Secure Enclave" : "Private key is held on another device", systemImage: "cpu").foregroundStyle(Theme.accent)
                     Text("Use a supported browser’s passkey flow to sign in. Pairing and backups copy this record, but cannot copy its private key. Register a separate passkey on each device or use the website’s cross-device sign-in option.").font(.callout).foregroundStyle(.secondary)
@@ -154,7 +157,7 @@ struct ItemDetail: View {
         }.background(Theme.background).navigationTitle(item.title).errorAlert($error)
             .onChange(of: item.id) { _, _ in reveal = false }
             .alert("Copy password?", isPresented: $copyNotice) { Button("Cancel", role: .cancel) {}; Button("Copy for 30 seconds") { Platform.copySecret(item.password) } } message: { Text(DomainPolicy.passwordNotice(destination: nil)) }
-            .confirmationDialog("Delete this item?", isPresented: $deleteNotice, titleVisibility: .visible) { Button("Delete", role: .destructive) { Task { do { try await session.delete(item) } catch { self.error = ErrorMessage(error) } } } } message: { Text(item.kind == .passkey ? "This removes the local private key when it belongs to this device. Remove the corresponding passkey on the website too. Older encrypted snapshots can still contain record metadata." : "The item is removed from the current vault. Older encrypted snapshots and exported backups may retain it.") }
+            .confirmationDialog("Delete this item?", isPresented: $deleteNotice, titleVisibility: .visible) { Button("Delete", role: .destructive) { Task { do { try await session.delete(item) } catch { self.error = ErrorMessage(error) } } } } message: { Text(item.kind == .wallet ? "This deletes the address record and its private keys on this device. Make sure you have backed up the wallet recovery details. Vault backups cannot recover wallet keys. Address records on other devices do not contain the keys." : item.kind == .passkey ? "This removes the local private key when it belongs to this device. Remove the corresponding passkey on the website too. Older encrypted snapshots can still contain record metadata." : "The item is removed from the current vault. Older encrypted snapshots and exported backups may retain it.") }
     }
     private func field(_ label: String, value: String) -> some View { VStack(alignment: .leading, spacing: 8) { Text(label).font(.caption).foregroundStyle(.secondary); Text(value).textSelection(.enabled) } }
 }
@@ -168,7 +171,7 @@ struct ItemEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Item") { TextField("Title", text: $item.title); TextField("Username", text: $item.username); if item.kind != .passkey { TextField("HTTPS website", text: $item.website) } }
+                Section("Item") { TextField("Title", text: $item.title); if item.kind != .wallet { TextField("Username", text: $item.username) }; if item.kind != .passkey && item.kind != .wallet { TextField("HTTPS website", text: $item.website) } }
                 if item.kind == .password {
                     Section("Password") {
                         SecureField("Password", text: $item.password)

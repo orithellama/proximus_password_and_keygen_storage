@@ -10,6 +10,10 @@ import AppKit
 #endif
 
 enum Platform {
+    #if os(macOS)
+    @MainActor private static var secretClipboardChange: Int?
+    @MainActor private static var clipboardTerminationObserver: NSObjectProtocol?
+    #endif
     static var deviceName: String {
         #if os(iOS)
         UIDevice.current.name
@@ -21,8 +25,18 @@ enum Platform {
         #if os(iOS)
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]], options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(30)])
         #else
-        let board = NSPasteboard.general; board.clearContents(); board.setString(text, forType: .string)
+        let board = NSPasteboard.general
+        board.prepareForNewContents(with: .currentHostOnly)
+        board.setString(text, forType: .string)
         let change = board.changeCount
+        secretClipboardChange = change
+        if clipboardTerminationObserver == nil {
+            clipboardTerminationObserver = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated {
+                    if NSPasteboard.general.changeCount == secretClipboardChange { NSPasteboard.general.clearContents() }
+                }
+            }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 30) { if board.changeCount == change { board.clearContents() } }
         #endif
     }

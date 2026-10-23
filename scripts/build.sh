@@ -18,7 +18,7 @@ xcodebuild -project ProximusPasswords.xcodeproj -scheme "$scheme" \
     -configuration Release -destination "$destination" \
     -derivedDataPath "build/$platform" "${options[@]}" build
 if [[ "$platform" == local ]]; then
-    app="build/local/Build/Products/Release/Proximus Passwords.app"
+    app="build/local/Build/Products/Release/Proximus.app"
     # Local builds do not register an unprovisioned credential-provider extension.
     if [[ -d "$app/Contents/PlugIns/ProximusAutoFill.appex" ]]; then
         mv "$app/Contents/PlugIns/ProximusAutoFill.appex" "build/local/ProximusAutoFill-unprovisioned-$(date +%s).appex"

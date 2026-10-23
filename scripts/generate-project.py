@@ -52,8 +52,8 @@ for platform in ["macOS", "iOS"]:
     for extension in [True, False]:
         name = ("AutoFill" if extension else "ProximusPasswords") + "-" + platform
         info = {
-            "CFBundleName": "Proximus AutoFill" if extension else "Proximus Passwords",
-            "CFBundleDisplayName": "Proximus AutoFill" if extension else "Proximus Passwords",
+            "CFBundleName": "Proximus AutoFill" if extension else "Proximus",
+            "CFBundleDisplayName": "Proximus AutoFill" if extension else "Proximus",
             "CFBundleExecutable": "$(EXECUTABLE_NAME)", "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
             "CFBundlePackageType": "XPC!" if extension else "APPL", "CFBundleInfoDictionaryVersion":"6.0",
             "CFBundleShortVersionString": "$(MARKETING_VERSION)", "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
@@ -61,6 +61,7 @@ for platform in ["macOS", "iOS"]:
             "ProximusSigningTeam": "$(DEVELOPMENT_TEAM)",
             "ASCredentialProviderExtensionCapabilities": capabilities,
             "ITSAppUsesNonExemptEncryption": True,
+            "NSFaceIDUsageDescription": "Use Face ID to unlock your vault, approve passkeys, and reveal wallet recovery details.",
             "UIAppFonts": ["SpaceGrotesk.ttf", "Sora.ttf"],
         }
         if extension:
@@ -81,7 +82,7 @@ for platform in ["macOS", "iOS"]:
             if not extension: entitlements.update({"com.apple.security.network.client":True,"com.apple.security.network.server":True,"com.apple.security.files.user-selected.read-write":True})
         entitlementpath = "Config/"+name+".entitlements"
         (ROOT/entitlementpath).write_bytes(plistlib.dumps(entitlements, sort_keys=True))
-        product = add("product:"+name, isa="PBXFileReference", explicitFileType="wrapper.app-extension" if extension else "wrapper.application", path=("ProximusAutoFill" if extension else "Proximus Passwords")+(".appex" if extension else ".app"), sourceTree="BUILT_PRODUCTS_DIR")
+        product = add("product:"+name, isa="PBXFileReference", explicitFileType="wrapper.app-extension" if extension else "wrapper.application", path=("ProximusAutoFill" if extension else "Proximus")+(".appex" if extension else ".app"), sourceTree="BUILT_PRODUCTS_DIR")
         products.append(product)
         dependency = add("package-product:"+name, isa="XCSwiftPackageProductDependency", package=package, productName="ProximusKit")
         frameworks = add("framework-phase:"+name, isa="PBXFrameworksBuildPhase", buildActionMask=2147483647, files=[add("link:"+name, isa="PBXBuildFile", productRef=dependency)], runOnlyForDeploymentPostprocessing=0)
@@ -99,7 +100,7 @@ for platform in ["macOS", "iOS"]:
             deps=[add("target-dependency:"+name,isa="PBXTargetDependency",target=target_ids[extname],targetProxy=proxy)]
         configs=[]
         for config in ["Debug","Release"]:
-            settings={"PRODUCT_NAME":"ProximusAutoFill" if extension else "Proximus Passwords", "PRODUCT_MODULE_NAME":"ProximusAutoFill" if extension else "ProximusPasswords", "PRODUCT_BUNDLE_IDENTIFIER":"$(PROXIMUS_BUNDLE_PREFIX)"+(".mac" if platform=="macOS" else ".ios")+(".autofill" if extension else ""), "INFOPLIST_FILE":plistpath,"CODE_SIGN_ENTITLEMENTS":entitlementpath,"SDKROOT":"macosx" if platform=="macOS" else "iphoneos","SUPPORTED_PLATFORMS":"macosx" if platform=="macOS" else "iphoneos iphonesimulator","SWIFT_OPTIMIZATION_LEVEL":"-Onone" if config=="Debug" else "-O","SWIFT_ACTIVE_COMPILATION_CONDITIONS":"DEBUG" if config=="Debug" else "","DEBUG_INFORMATION_FORMAT":"dwarf" if config=="Debug" else "dwarf-with-dsym","ONLY_ACTIVE_ARCH":"YES","ARCHS":"arm64","SKIP_INSTALL":"YES" if extension else "NO","APPLICATION_EXTENSION_API_ONLY":"YES" if extension else "NO"}
+            settings={"PRODUCT_NAME":"ProximusAutoFill" if extension else "Proximus", "PRODUCT_MODULE_NAME":"ProximusAutoFill" if extension else "ProximusPasswords", "PRODUCT_BUNDLE_IDENTIFIER":"$(PROXIMUS_BUNDLE_PREFIX)"+(".mac" if platform=="macOS" else ".ios")+(".autofill" if extension else ""), "INFOPLIST_FILE":plistpath,"CODE_SIGN_ENTITLEMENTS":entitlementpath,"SDKROOT":"macosx" if platform=="macOS" else "iphoneos","SUPPORTED_PLATFORMS":"macosx" if platform=="macOS" else "iphoneos iphonesimulator","SWIFT_OPTIMIZATION_LEVEL":"-Onone" if config=="Debug" else "-O","SWIFT_ACTIVE_COMPILATION_CONDITIONS":"DEBUG" if config=="Debug" else "","DEBUG_INFORMATION_FORMAT":"dwarf" if config=="Debug" else "dwarf-with-dsym","ONLY_ACTIVE_ARCH":"YES","ARCHS":"arm64","SKIP_INSTALL":"YES" if extension else "NO","APPLICATION_EXTENSION_API_ONLY":"YES" if extension else "NO"}
             if platform=="iOS":settings.update({"TARGETED_DEVICE_FAMILY":"1,2","SUPPORTS_MACCATALYST":"NO","SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD":"NO"})
             if not extension and platform == "macOS":settings["ASSETCATALOG_COMPILER_APPICON_NAME"]="AppIcon"
             configs.append(add("config:"+name+config,isa="XCBuildConfiguration",baseConfigurationReference=base,buildSettings=settings,name=config))
@@ -120,7 +121,7 @@ for platform in ["macOS","iOS"]:
     scheme=ET.Element("Scheme",LastUpgradeVersion="1610",version="1.3")
     build=ET.SubElement(scheme,"BuildAction",parallelizeBuildables="YES",buildImplicitDependencies="YES")
     entry=ET.SubElement(ET.SubElement(build,"BuildActionEntries"),"BuildActionEntry",buildForTesting="YES",buildForRunning="YES",buildForProfiling="YES",buildForArchiving="YES",buildForAnalyzing="YES")
-    attrs={"BuildableIdentifier":"primary","BlueprintIdentifier":str(target_ids[name]),"BuildableName":"Proximus Passwords.app","BlueprintName":name,"ReferencedContainer":"container:ProximusPasswords.xcodeproj"}
+    attrs={"BuildableIdentifier":"primary","BlueprintIdentifier":str(target_ids[name]),"BuildableName":"Proximus.app","BlueprintName":name,"ReferencedContainer":"container:ProximusPasswords.xcodeproj"}
     ET.SubElement(entry,"BuildableReference",**attrs)
     launch=ET.SubElement(scheme,"LaunchAction",buildConfiguration="Debug",selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB",selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB",launchStyle="0",useCustomWorkingDirectory="NO",ignoresPersistentStateOnLaunch="NO",debugDocumentVersioning="YES",debugServiceExtension="internal",allowLocationSimulation="YES")
     ET.SubElement(ET.SubElement(launch,"BuildableProductRunnable",runnableDebuggingMode="0"),"BuildableReference",**attrs)

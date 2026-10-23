@@ -83,7 +83,7 @@ def main():
     except subprocess.CalledProcessError:
         print("\n".join(log_path.read_text(errors="replace").splitlines()[-25:]), file=sys.stderr)
         raise RuntimeError("Signing or compilation failed. Configure the app and AutoFill extension with the same team, App Group, and Keychain group in Xcode, then retry.")
-    app = build / "phone/Build/Products/Release-iphoneos/Proximus Passwords.app"
+    app = build / "phone/Build/Products/Release-iphoneos/Proximus.app"
     run(["codesign", "--verify", "--deep", "--strict", str(app)])
     if not (app / "embedded.mobileprovision").is_file():
         raise RuntimeError("The build has no provisioning profile. Installation stopped.")

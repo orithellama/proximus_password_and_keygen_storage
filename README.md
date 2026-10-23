@@ -1,13 +1,15 @@
-# Proximus Passwords
+# Proximus
 
-Free, open-source password manager and passkey provider for Mac, iPhone, and iPad. Local encrypted storage, QR device enrollment, and optional self-hosted sync. All features are included, with no subscription or purchase required.
+Free, open-source app for passwords, passkeys, and wallet keys for Mac, iPhone, and iPad. Local encrypted storage, QR device enrollment, and optional self-hosted sync. All features are included, with no subscription or purchase required.
 
-**Version 0.1.0 - Apache-2.0 - PROXIMUS Research Labs Foundation**
+**Version 0.2.0 - Apache-2.0 - PROXIMUS Research Labs Foundation**
 
 ## Features
 
 - Passwords, secure notes, search, favorites, and collections
 - On-device password generator with saved settings
+- BIP-39 master passphrase generation
+- Solana, Ethereum/EVM, Bitcoin, and Monero wallet keys, addresses, and recovery
 - Password AutoFill with exact HTTPS origin matching
 - Secure Enclave passkeys and device unlock
 - Encrypted backups, recovery, and CSV import
@@ -23,14 +25,14 @@ The interface uses the original Proximus wings, Sora headings, Space Grotesk bod
 | --- | --- |
 | Mac | Apple silicon, macOS 14 or later |
 | iPhone and iPad | iOS 17 or iPadOS 17 or later |
-| Passkeys and paired-device unlock | Secure Enclave and a configured device passcode or password |
+| Passkeys, wallet keys, and paired-device unlock | Secure Enclave and a configured device passcode or password |
 | Apple build tools | Xcode 16.1 or later, with an SDK compatible with the target device |
 | Cryptography build | Rust, Cargo, and Apple ARM64 targets |
 | Project generation | Python 3 |
 | Sync relay | Go 1.27.3 or later, or Docker |
 | Physical-device installation | Apple signing team, provisioning profiles, App Groups, and AutoFill capability |
 
-The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthentication, and Network.framework. A Rust library supplies Argon2id, AES-GCM, and unbiased password generation. The sync relay uses Go’s standard library.
+The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthentication, and Network.framework. A Rust library supplies Argon2id, AES-GCM, unbiased password generation, BIP-39, and wallet address derivation. The sync relay uses Go’s standard library.
 
 ## Installation from source
 
@@ -38,7 +40,7 @@ The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthenti
 
 Install Xcode 16.1 or later and [Rust](https://rustup.rs), then open Xcode once to complete its setup. Clone this repository, open its folder in Finder, and double-click **[Install Proximus.command](Install%20Proximus.command)**.
 
-The installer builds the app, verifies its local code signature, installs it at `~/Applications/Proximus Passwords.app`, and opens it. The first build downloads dependencies. No Apple Developer account or Proximus account is required for this local Mac installation. Existing vault data is preserved on updates, and the previous app bundle is retained for rollback. Build output is recorded in `build/install-mac.log`.
+The installer builds the app, verifies its local code signature, installs it at `~/Applications/Proximus.app`, and opens it. The first build downloads dependencies. No Apple Developer account or Proximus account is required for this local Mac installation. Existing vault data is preserved on updates, and the previous app bundle is retained for rollback. Build output is recorded in `build/install-mac.log`.
 
 The same installation is available from Terminal:
 
@@ -84,7 +86,7 @@ Build a local Mac application without an Apple Developer account:
 
 ```sh
 bash scripts/build.sh local
-open 'build/local/Build/Products/Release/Proximus Passwords.app'
+open 'build/local/Build/Products/Release/Proximus.app'
 ```
 
 Local Mac builds use an isolated Application Support vault and the macOS login Keychain. The build script applies an ad-hoc signature and excludes the unprovisioned AutoFill extension. Password storage, generation, import, backup, device unlock, pairing, and encrypted sync remain available. Browser AutoFill and passkey-provider integration use the Apple-team-signed build.
@@ -95,7 +97,7 @@ For shared AutoFill, configure `Config/Local.xcconfig`, select the `ProximusPass
 bash scripts/build.sh macos
 ```
 
-Copy `build/macos/Build/Products/Release/Proximus Passwords.app` to `/Applications` or `~/Applications`. Keep the embedded AutoFill extension inside the application bundle.
+Copy `build/macos/Build/Products/Release/Proximus.app` to `/Applications` or `~/Applications`. Keep the embedded AutoFill extension inside the application bundle.
 
 ### iPhone and iPad without the App Store
 
@@ -138,13 +140,32 @@ Unsigned builds verify compilation. Physical-device installation uses the signed
 
 Creating a vault creates a local vault identifier and encryption keys. It does not create a Proximus website account or require an email address. The optional sidebar sign-up opens the Proximus website in the browser and is separate from vault access.
 
-**Create a vault** generates a random 256-bit vault key and a separate 256-bit recovery key. The master passphrase has a minimum length of 12 UTF-8 bytes. The recovery key and master passphrase together unlock an encrypted backup.
+**Create a vault** generates a random 256-bit vault key and a separate 256-bit recovery key. The master passphrase has a minimum length of 12 UTF-8 bytes. **Generate from BIP-39** fills both passphrase fields with 24 English words generated from 256 random bits plus the BIP-39 checksum. Save this phrase separately from the recovery key and use it only for the vault. Wallet recovery phrases are generated independently. The recovery key and master passphrase together unlock an encrypted backup.
 
 The recovery key can be remembered in the device’s local Keychain. **Settings → Enable device unlock** adds a Secure Enclave protected unlock path. Subsequent unlocks can use Face ID or Touch ID on supported hardware. Device owner authentication can also accept the device passcode or password. Biometric data is handled by the operating system and is not sent to Proximus. Device unlock does not replace the recovery kit for restoring a backup on a new device.
 
 **Settings → Import passwords from CSV** accepts UTF-8 exports with `name` or `title`, `url` or `website`, `username`, `password`, and optional `notes` columns. Chrome, Safari, and password-only Bitwarden aliases are supported. Imports add validated records without replacing existing items. OTP secrets are rejected rather than discarded.
 
-**Settings → Export encrypted backup** writes a `.proximusvault` file. **Restore an encrypted backup** restores that file on a device without an existing vault, using the master passphrase and recovery key. Hardware-bound passkey private keys are excluded from backups.
+**Settings → Export encrypted backup** writes a `.proximusvault` file. **Restore an encrypted backup** restores that file on a device without an existing vault, using the master passphrase and recovery key. Hardware-bound passkey private keys and device-local wallet secrets are excluded from vault backups.
+
+## Wallet keys and recovery
+
+Choose **+ → Crypto wallet** to create or restore a wallet. Each new wallet gets independent randomness. Use **Back up or reveal recovery details**, authenticate with Face ID, Touch ID, or the device password/passcode, and save the recovery details separately. They hide after 60 seconds, when the vault locks, or when the app enters the background.
+
+| Network | First address | Recovery and key format |
+| --- | --- | --- |
+| Solana | `m/44'/501'/0'/0'`, SLIP-0010 Ed25519 | 24-word English BIP-39 phrase, Base58 64-byte keypair |
+| Ethereum / EVM | `m/44'/60'/0'/0/0`, secp256k1, EIP-55 | 24-word English BIP-39 phrase, hex private key |
+| Bitcoin mainnet | `m/84'/0'/0'/0/0`, native SegWit | 24-word English BIP-39 phrase, compressed WIF private key |
+| Monero mainnet | Standard deterministic address | Hex private spend key and derived private view key |
+
+BIP-39 restoration accepts valid English phrases with no extra BIP-39 passphrase and derives only the first address at the path above. Other paths, account discovery, and additional addresses are not included. Monero restoration accepts a canonical private spend key and derives its view key using Keccak-256 and scalar reduction. It does not import Monero word mnemonics or wallets with independently chosen view keys. To recover in Monero software, use the address, spend key, and view key. Scan from height 0 if the original restore height is unknown. [BIP-84](https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki), [SLIP-0010](https://github.com/satoshilabs/slips/blob/master/slip-0010.md), [EIP-55](https://eips.ethereum.org/EIPS/eip-55), [Monero address format](https://docs.getmonero.org/public-address/standard-address/)
+
+Wallet recovery phrases and private keys stay in a separate app-private store, encrypted under a dedicated Secure Enclave wrapping key requiring device owner authentication. The files are excluded from system backups, and their wrapping keys cannot be used on another device. There is no vault-passphrase fallback for this store. Vault snapshots, relay sync, nearby sync, pairing, and vault backup files contain public wallet metadata only. Explicit restoration from a separately saved recovery phrase/key can create a wallet on another device.
+
+The **Delete item** action removes local wallet keys when no other current record references that wallet. A deletion received through sync only removes the address record and does not erase another device's key store. Existing exported backups cannot recover deleted wallet keys. Keep the separate recovery details before deleting, uninstalling, or replacing a device.
+
+This version generates keys, displays addresses, and provides manual recovery backup and restoration. It does not sign transactions, connect to dApps, send funds, or query balances. It is a software wallet protected at rest by Secure Enclave, not a dedicated hardware wallet. Apple Secure Enclave supports P-256 rather than these networks' signing curves. Revealed keys can be exposed by a compromised operating system. [Apple Secure Enclave key restrictions](https://developer.apple.com/documentation/security/protecting-keys-with-the-secure-enclave)
 
 ## Pair a device
 
@@ -155,7 +176,7 @@ The recovery key can be remembered in the device’s local Keychain. **Settings 
 5. Compare the six-digit code on both screens.
 6. Approve the matching code on both devices.
 
-Pairing uses Network.framework with peer-to-peer Wi-Fi enabled. Devices can connect directly without a router or internet access, or through an existing local network. Wi-Fi must remain enabled, and Local Network access must be allowed. Invitations expire after two minutes and accept one connection. The QR contains a temporary public key, session identifier, and expiry. The encrypted transfer contains the password vault, its authenticated checkpoint, and optional relay configuration. Passkey private keys remain on their original device.
+Pairing uses Network.framework with peer-to-peer Wi-Fi enabled. Devices can connect directly without a router or internet access, or through an existing local network. Wi-Fi must remain enabled, and Local Network access must be allowed. Invitations expire after two minutes and accept one connection. The QR contains a temporary public key, session identifier, and expiry. The encrypted transfer contains the password vault, its authenticated checkpoint, and optional relay configuration. Passkey private keys and wallet recovery phrases/private keys remain on their original device. Wallet address metadata can sync.
 
 ### Nearby sync after pairing
 
@@ -224,7 +245,7 @@ Public endpoints use HTTPS. Plain HTTP is accepted only for localhost developmen
 
 Titles, usernames, websites, passwords, notes, collections, and device names are encrypted inside snapshots. The unencrypted header contains format and recovery-envelope data. Locking drops session data and clears the dedicated key buffer. SwiftUI and operating-system APIs can retain temporary plaintext copies while an item is in use.
 
-Storage encryption protects locked vault data. A website receives a password when it is filled. A compromised operating system can capture passwords in use or misuse a signed-in session. Secure Enclave protects private-key extraction, while session security and account recovery remain separate controls.
+Storage encryption protects locked vault data. A website receives a password when it is filled. A compromised operating system can capture passwords in use or misuse a signed-in session. Secure Enclave keeps passkey signing keys and wallet wrapping keys non-exportable. Wallet signing keys use other curves and are decrypted into app memory when revealed. Session security and account recovery remain separate controls.
 
 Disconnecting sync does not revoke keys already held by a paired device. Lost-device response includes account session revocation, password rotation, and migration to a fresh vault and relay namespace.
 
@@ -238,6 +259,7 @@ The generator uses operating-system cryptographic randomness and rejection sampl
 | 24 characters from 62 letters and digits | 143 bits |
 | 6 words from a 7,776-word list | 77.5 bits |
 | 7 words from a 7,776-word list | 90.5 bits |
+| 24 BIP-39 words generated from random entropy | 256 bits |
 
 Long, independently random passwords resist guessing. Unique passwords prevent one leak from opening other accounts. Predictable substitutions, quotations, birthdays, and reused base passwords do not provide equivalent randomness. Six or seven independently selected dice words provide a practical master passphrase. [EFF passphrase generation](https://www.eff.org/dice)
 
@@ -253,11 +275,13 @@ cd services
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 ```
 
-Tests cover known-answer encryption vectors, corrupted snapshots, recovery factors, concurrent edits, backup restoration, exact-origin matching, pairing transcripts, nearby authentication and replay rejection, encrypted socket transfers, nearby push/pull and conflict handling, WebAuthn encoding, CSV imports, and relay compare-and-swap. Physical-device verification covers provisioning, biometric prompts, browser registration and assertions, password AutoFill, and local-network pairing.
+Tests cover BIP-39, BIP-84, SLIP-0010, EIP-55 and Monero derivation vectors, wallet recovery, device ownership and metadata binding, exclusion of wallet secrets from snapshots and backups, known-answer encryption vectors, corrupted snapshots, recovery factors, concurrent edits, backup restoration, exact-origin matching, pairing transcripts, nearby authentication and replay rejection, encrypted socket transfers, nearby push/pull and conflict handling, WebAuthn encoding, CSV imports, and relay compare-and-swap. Physical-device verification must additionally cover provisioning, biometric wallet recovery, browser registration and assertions, password AutoFill, and peer-to-peer radio connectivity. Automated tests use an isolated protection implementation for wallet file storage and do not validate biometric hardware.
 
 Go 1.27.3 includes the October 2026 X.509 security update. [Go release history](https://go.dev/doc/devel/release)
 
 ## Version control and releases
+
+Version 0.2.0 renames the app to **Proximus** and adds BIP-39 generation and wallet key storage. Bundle identifiers and existing vault paths are unchanged. The installer retains the previous app bundle. Upgrade all paired devices before adding wallet records, because older versions cannot read the new item kind.
 
 `VERSION` matches `MARKETING_VERSION` in `Config/Base.xcconfig` and the Rust crate version. Vault format version `1` is independent of the application version. Unsupported formats are rejected.
 
@@ -298,15 +322,15 @@ scripts/                Build, verification, branding, packaging
 ## Announcement
 
 ```text
-Introducing Proximus Passwords.
+Introducing the Proximus app.
 
-Free. Open source. Encrypted on your devices.
+Passwords. Passkeys. Wallet keys.
 
-Strong passwords, hardware-bound passkeys, device pairing and optional self-hosted sync.
+Free and open source for Mac, iPhone and iPad. Local encrypted vaults, nearby device sync, and an optional self-hosted relay.
 
-Built for Mac, iPhone and iPad.
+Your wallet keys stay on your device.
 
-No subscriptions. No paid tiers.
+No subscriptions.
 
 proximus.sh
 ```
