@@ -49,7 +49,7 @@ struct SettingsView: View {
                 }
                 Section("Recovery & backup") {
                     NavigationLink("iCloud & encrypted recovery kit") { RecoverySettingsView(session: session) }
-                    NavigationLink("Custom RPC nodes") { RPCSettingsView() }
+                    NavigationLink("Custom RPC nodes") { RPCSettingsView().onDisappear { session.clearWalletBalances() } }
                     Button("Import passwords from CSV") { importingCSV = true }
                     Button("Export encrypted backup") { run { document = VaultDocument(data: try session.exportBackup()); filename = "Proximus-\(Date().formatted(.iso8601.year().month().day())).proximusvault"; exporting = true } }
                     Text("Backups require your master passphrase and recovery key. Store a copy away from this device. Device-bound passkeys cannot be recovered from a vault backup.").font(.caption).foregroundStyle(.secondary)

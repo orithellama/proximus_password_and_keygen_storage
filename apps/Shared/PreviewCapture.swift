@@ -18,7 +18,7 @@ struct PreviewCaptureView: View {
                 else if ProcessInfo.processInfo.arguments.contains("--wallet-screen") { WalletCreator(session: session, created: { _ in }) }
                 else if ProcessInfo.processInfo.arguments.contains("--recovery-screen") { NavigationStack { RecoverySettingsView(session: session) } }
                 else if ProcessInfo.processInfo.arguments.contains("--generator-screen") { GeneratorView() }
-                else { VaultView(session: session, initialSelection: selection) }
+                else { VaultView(session: session, initialSelection: selection, initialCategory: ProcessInfo.processInfo.arguments.contains("--wallet-detail-screen") ? "wallet" : "all") }
             } else { Text(error.isEmpty ? "Rendering app preview…" : error) }
         }.frame(minWidth: detailScreen ? 760 : 1180, minHeight: 760)
             .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("--dark") ? .dark : .light)
@@ -33,7 +33,7 @@ struct PreviewCaptureView: View {
                         _ = try VaultSession(repository: AppEnvironment.repository(), deviceID: AppEnvironment.deviceID())
                         print("Local Keychain round trip and vault initialization passed")
                     }
-                    let items = [
+                    var items = [
                         VaultItem(title: "Proximus", username: "alex@example.com", website: "https://www.proximus.sh", password: "sample-password-for-preview", notes: "Workspace account", collection: "Work", favorite: true),
                         VaultItem(title: "Apple", username: "alex@example.com", website: "https://account.apple.com", password: "sample-password-for-preview", favorite: true),
                         VaultItem(kind: .passkey, title: "GitHub", username: "alex", website: "https://github.com", collection: "Work", passkey: PasskeyMetadata(credentialID: Data(repeating: 1, count: 32), userHandle: Data("sample".utf8), relyingParty: "github.com", deviceID: device)),
@@ -41,7 +41,13 @@ struct PreviewCaptureView: View {
                         VaultItem(kind: .note, title: "Recovery instructions", notes: "Keep the offline recovery kit in a separate secure location."),
                         VaultItem(title: "Figma", username: "alex@example.com", website: "https://figma.com", password: "sample-password-for-preview", collection: "Work")
                     ]
-                    let model = try VaultSession.visualFixture(contents: VaultContents(items: items, devices: [PairedDevice(id: device, name: "MacBook Pro")]), deviceID: device)
+                    if ProcessInfo.processInfo.arguments.contains("--wallet-detail-screen") {
+                        items = try WalletNetwork.allCases.map { network in
+                            let material = try WalletCrypto.derive(network: network, recovery: network == .monero ? "01" + String(repeating: "00", count: 31) : "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
+                            return VaultItem(kind: .wallet, title: network == .solana ? "Personal" : network.label, wallet: material.metadata(network: network, deviceID: device))
+                        }
+                    }
+                    let model = try VaultSession.visualFixture(contents: VaultContents(items: items, devices: [PairedDevice(id: device, name: "MacBook Pro")]), deviceID: device, sampleWalletBalances: true)
                     selection = items[0].id
                     if ProcessInfo.processInfo.arguments.contains("--unlock-screen") { model.lock() }
                     session = model

@@ -63,10 +63,48 @@ struct WalletDetails: View {
     @ObservedObject var session: VaultSession
     let metadata: WalletMetadata
     @State private var recovery = false
+    @State private var sending = false
+    @State private var nodes = false
+    @State private var approvals = false
+    @State private var refreshing = false
+    @State private var receipt: TransferReceipt?
+    @State private var error: ErrorMessage?
     private var local: Bool { metadata.ownerDeviceID == session.deviceID }
+    private var supportsWalletRPC: Bool {
+        #if os(iOS)
+        return metadata.network != .monero
+        #else
+        return true
+        #endif
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Label(metadata.network.label, systemImage: "wallet.bifold").font(.headline)
+            Label(session.walletBalances[metadata.id]?.chain.display ?? metadata.network.coinLabel, systemImage: "wallet.bifold").font(.headline)
+            VStack(alignment: .leading, spacing: 10) {
+                if let balance = session.walletBalances[metadata.id] {
+                    Text(balance.chain.amount(balance.available)).font(Theme.heading(30)).foregroundStyle(Theme.accent)
+                    if balance.total != balance.available { Text("Total including locked: " + balance.chain.amount(balance.total)).font(.caption) }
+                    Text(balance.detail).font(.caption).foregroundStyle(.secondary)
+                    Text("Updated " + balance.checkedAt.formatted()).font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text(supportsWalletRPC ? "Balance not loaded" : "Monero balances are available on Mac").font(.title3)
+                    if supportsWalletRPC { Text("Choose your RPC node, then refresh. The node will receive this wallet’s public address.").font(.caption).foregroundStyle(.secondary) }
+                }
+                HStack {
+                    Button("Refresh balance") { refresh() }.disabled(refreshing || !supportsWalletRPC)
+                    Button("RPC settings") { nodes = true }
+                    if refreshing { ProgressView().controlSize(.small) }
+                }
+                if local {
+                    HStack {
+                        Button("Send crypto") { sending = true }.buttonStyle(.borderedProminent).disabled(!supportsWalletRPC)
+                        Button("Device approval") { approvals = true }
+                    }
+                }
+                #if os(iOS)
+                if metadata.network == .monero { Text("Monero balances and sending use the local wallet companion on Mac. Your address and recovery details remain available here.").font(.caption).foregroundStyle(.secondary) }
+                #endif
+            }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Theme.accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 8) {
                 Text(metadata.network == .evm ? "Public address" : "Mainnet address").font(.caption).foregroundStyle(.secondary)
                 Text(metadata.address).font(.system(.callout, design: .monospaced)).textSelection(.enabled)
@@ -81,9 +119,16 @@ struct WalletDetails: View {
             } else {
                 Text("Open Proximus on the original device to back up its keys, or restore the wallet here from your separate recovery backup.").font(.callout).foregroundStyle(.secondary)
             }
-            Text("Keys are encrypted with device protection. Revealing them brings them into app memory. This app does not provide the isolation of a dedicated hardware wallet.").font(.caption).foregroundStyle(.secondary)
+            Text("Keys are encrypted with device protection. Signing or revealing them brings them into app memory. This app does not provide the isolation of a dedicated hardware wallet.").font(.caption).foregroundStyle(.secondary)
+            if let receipt { Divider(); Text("Latest transfer").font(.headline); TransferReceiptView(receipt: receipt, wallet: metadata).id(receipt.id) }
         }.sheet(isPresented: $recovery) { WalletRecoveryView(session: session, metadata: metadata) }
+            .sheet(isPresented: $sending, onDismiss: loadReceipt) { SendCryptoView(session: session, wallet: metadata) }
+            .sheet(isPresented: $approvals) { WalletApprovalPolicyView(session: session, wallet: metadata) }
+            .sheet(isPresented: $nodes, onDismiss: { session.clearWalletBalances() }) { NavigationStack { RPCSettingsView(network: metadata.network).toolbar { Button("Done") { nodes = false } } }.frame(idealWidth: 620, idealHeight: 640) }
+            .onAppear(perform: loadReceipt).errorAlert($error)
     }
+    private func refresh() { refreshing = true; Task { do { try await session.refreshWalletBalance(metadata) } catch { self.error = ErrorMessage(error) }; refreshing = false } }
+    private func loadReceipt() { do { receipt = try TransferReceipt.load(wallet: metadata.id) } catch { self.error = ErrorMessage(error) } }
 }
 
 struct WalletRecoveryView: View {

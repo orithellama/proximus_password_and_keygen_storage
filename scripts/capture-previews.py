@@ -19,7 +19,7 @@ app = root / 'build/preview/Build/Products/Debug/Proximus.app'
 output = root / 'build/launch'
 output.mkdir(parents=True, exist_ok=True)
 shots = []
-for name, flag in [('proximus-app', None), ('proximus-wallets', '--wallet-screen'), ('proximus-recovery', '--recovery-screen'), ('proximus-generator', '--generator-screen')]:
+for name, flag in [('proximus-app', None), ('proximus-wallets', '--wallet-screen'), ('proximus-wallet-balances', '--wallet-detail-screen'), ('proximus-recovery', '--recovery-screen'), ('proximus-generator', '--generator-screen')]:
     destination = output / (name + '.png')
     command = ['open', '-n', '-W', '--env', f'PROXIMUS_PREVIEW_OUTPUT={destination}', str(app), '--args', '--capture-preview', '--dark']
     if flag:

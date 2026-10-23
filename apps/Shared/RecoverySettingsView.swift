@@ -48,12 +48,14 @@ struct RecoverySettingsView: View {
 
 struct RPCSettingsView: View {
     @State private var network: WalletNetwork = .solana
+    @State private var companion = false
     @State private var endpoint = ""
     @State private var username = ""
     @State private var password = ""
     @State private var status = ""
     @State private var busy = false
     @State private var error: ErrorMessage?
+    init(network: WalletNetwork = .solana) { _network = State(initialValue: network) }
     var body: some View {
         Form {
             Section("Your node") {
@@ -61,8 +63,14 @@ struct RPCSettingsView: View {
                 TextField("HTTPS RPC endpoint", text: $endpoint)
                 TextField("RPC username (optional)", text: $username)
                 SecureField("RPC password (optional)", text: $password)
-                if network == .bitcoin { Text("Bitcoin Core JSON-RPC endpoint. Put a remote node behind HTTPS. Localhost HTTP is accepted.").font(.caption) }
-                if network == .monero { Text("Use the daemon’s /json_rpc endpoint.").font(.caption) }
+                if network == .evm { Text("Supported: Ethereum, BNB Smart Chain, Polygon PoS, Avalanche C-Chain, and Sepolia testnet. The app reads the chain ID before showing a balance or preparing a transfer.").font(.caption) }
+                if network == .bitcoin { Text("Use the Bitcoin Core wallet endpoint, for example http://127.0.0.1:8332/wallet/proximus. Import your public address as a watch-only descriptor and rescan before refreshing. Core never needs your private keys.").font(.caption) }
+                if network == .monero {
+                    #if os(macOS)
+                    Toggle("Local wallet companion (balances & sending)", isOn: $companion)
+                    #endif
+                    Text(companion ? "Use monero-wallet-rpc at http://127.0.0.1:18082/json_rpc with RPC username/password. Open the matching mainnet wallet and let it sync first. It has its own wallet storage; Proximus never transfers keys to it. Digest authentication is supported." : "Use the daemon’s /json_rpc endpoint for connection checks. Balances and sending require the local wallet companion on Mac.").font(.caption)
+                }
                 Button("Save on this device") { do { try configuration().save(); status = "Saved in this device’s Keychain." } catch { self.error = ErrorMessage(error) } }
                 Button("Check connection") {
                     busy = true; status = ""
@@ -71,8 +79,8 @@ struct RPCSettingsView: View {
                 Button("Remove saved endpoint", role: .destructive) { do { try RPCConfiguration.remove(network); endpoint = ""; username = ""; password = ""; status = "Removed" } catch { self.error = ErrorMessage(error) } }
             }
             Section {
-                Text("Connection checks request network information only. They do not send addresses, recovery phrases, private keys, or transactions. The endpoint and credentials stay on this device and are excluded from recovery kits.")
-                Text("Transaction signing and sending are not implemented. Nearby devices can exchange addresses offline. Blockchain payments need a node to broadcast the transaction and the network to confirm it.").font(.caption).foregroundStyle(.secondary)
+                Text("Connection checks request node information. Refreshing a wallet shares its public address with this node. Sending submits the reviewed signed transaction. Recovery phrases and private keys are never sent to the RPC. Endpoints and credentials stay on this device and are excluded from recovery kits.")
+                Text("Nearby devices can exchange addresses and approval codes offline. Blockchain payments need a connected node to broadcast and the network to confirm them.").font(.caption).foregroundStyle(.secondary)
                 Text("A successful connection check is the node’s response, not proof that the node is honest.").font(.caption).foregroundStyle(.secondary)
             }
             if busy { ProgressView() }
@@ -82,7 +90,7 @@ struct RPCSettingsView: View {
     }
     private func configuration() throws -> RPCConfiguration {
         guard let url = URL(string: endpoint.trimmingCharacters(in: .whitespacesAndNewlines)) else { throw ProximusError.invalid("Enter an RPC endpoint.") }
-        return try RPCConfiguration(network: network, endpoint: url, username: username, password: password)
+        return try RPCConfiguration(network: network, endpoint: url, username: username, password: password, moneroWalletCompanion: network == .monero && companion)
     }
-    private func load() { do { let saved = try RPCConfiguration.load(network); endpoint = saved?.endpoint.absoluteString ?? ""; username = saved?.username ?? ""; password = saved?.password ?? ""; status = "" } catch { self.error = ErrorMessage(error) } }
+    private func load() { do { let saved = try RPCConfiguration.load(network); endpoint = saved?.endpoint.absoluteString ?? ""; username = saved?.username ?? ""; password = saved?.password ?? ""; companion = saved?.moneroWalletCompanion == true; status = "" } catch { self.error = ErrorMessage(error) } }
 }

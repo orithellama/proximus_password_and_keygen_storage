@@ -5,8 +5,10 @@ public struct RPCConfiguration: Codable, Sendable {
     public var endpoint: URL
     public var username: String
     public var password: String
-    public init(network: WalletNetwork, endpoint: URL, username: String = "", password: String = "") throws {
+    public var moneroWalletCompanion: Bool?
+    public init(network: WalletNetwork, endpoint: URL, username: String = "", password: String = "", moneroWalletCompanion: Bool = false) throws {
         self.network = network; self.endpoint = endpoint; self.username = username; self.password = password
+        self.moneroWalletCompanion = moneroWalletCompanion
         try validate()
     }
     public func validate() throws {
@@ -14,6 +16,12 @@ public struct RPCConfiguration: Codable, Sendable {
               endpoint.scheme == "https" || (endpoint.scheme == "http" && ["localhost", "127.0.0.1", "::1", "[::1]"].contains(endpoint.host ?? "")),
               username.utf8.count <= 256, password.utf8.count <= 2048, !username.contains(":"), !username.contains(where: { $0.isNewline }), !password.contains(where: { $0.isNewline }), password.isEmpty || !username.isEmpty else {
             throw ProximusError.invalid("Use an HTTPS RPC URL, or HTTP on localhost. Enter RPC credentials in their separate fields.")
+        }
+        if moneroWalletCompanion == true {
+            guard network == .monero, ["127.0.0.1", "::1", "[::1]"].contains(endpoint.host ?? ""), !username.isEmpty, !password.isEmpty else { throw ProximusError.invalid("Use a local Monero wallet RPC at 127.0.0.1 or [::1] with RPC username and password.") }
+            #if !os(macOS)
+            throw ProximusError.unavailable("The local Monero wallet companion is supported on Mac.")
+            #endif
         }
     }
     public func save() throws { try validate(); try DeviceKeychain.write(Encoding.encode(self), account: "rpc/" + network.rawValue) }
@@ -26,16 +34,17 @@ public struct RPCConfiguration: Codable, Sendable {
     func request() throws -> URLRequest {
         try validate()
         let method: String
-        switch network { case .solana: method = "getGenesisHash"; case .evm: method = "eth_chainId"; case .bitcoin: method = "getblockchaininfo"; case .monero: method = "get_info" }
+        switch network { case .solana: method = "getGenesisHash"; case .evm: method = "eth_chainId"; case .bitcoin: method = "getblockchaininfo"; case .monero: method = moneroWalletCompanion == true ? "get_version" : "get_info" }
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": "proximus-connection-check", "method": method, "params": []])
-        if !username.isEmpty { request.setValue("Basic " + Data((username + ":" + password).utf8).base64EncodedString(), forHTTPHeaderField: "Authorization") }
+        let params: Any = network == .monero ? [String: Any]() : [Any]()
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": "proximus-connection-check", "method": method, "params": params])
+        if !username.isEmpty && moneroWalletCompanion != true { request.setValue("Basic " + Data((username + ":" + password).utf8).base64EncodedString(), forHTTPHeaderField: "Authorization") }
         return request
     }
     public func checkConnection() async throws -> String {
-        let (data, response) = try await BoundedHTTP.send(request(), limit: 256 * 1024)
+        let (data, response) = try await BoundedHTTP.send(request(), limit: 256 * 1024, digestCredential: digestCredential)
         guard response.statusCode == 200 else { throw ProximusError.transport("RPC connection check failed (HTTP \(response.statusCode)).") }
         return try parseResponse(data)
     }
@@ -49,8 +58,13 @@ public struct RPCConfiguration: Codable, Sendable {
             guard let value = result as? String, value.hasPrefix("0x"), (3...66).contains(value.count), value.dropFirst(2).allSatisfy(\.isHexDigit) else { throw ProximusError.transport("Invalid EVM chain ID.") }
             return "Connected. EVM chain ID: " + value
         case .bitcoin, .monero:
+            if moneroWalletCompanion == true {
+                guard let info = result as? [String: Any], info["version"] as? UInt64 != nil else { throw ProximusError.transport("Invalid Monero wallet RPC response.") }
+                return "Connected to the local Monero wallet companion. Each wallet’s address is checked before use."
+            }
             guard let info = result as? [String: Any], let network = info[network == .bitcoin ? "chain" : "nettype"] as? String, ["main", "test", "testnet4", "signet", "regtest", "mainnet", "testnet", "stagenet"].contains(network), let height = info[self.network == .bitcoin ? "blocks" : "height"] as? Int, height >= 0 else { throw ProximusError.transport("Invalid node network or height.") }
             return "Connected to \(network). Block height: \(height)"
         }
     }
+    var digestCredential: URLCredential? { moneroWalletCompanion == true ? URLCredential(user: username, password: password, persistence: .none) : nil }
 }

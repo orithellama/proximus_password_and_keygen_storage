@@ -1,4 +1,4 @@
-//! Offline derivation only. No RPC, signing, or transaction handling.
+//! Offline wallet derivation. Transaction handling lives in transactions.rs.
 use bip39::{Language, Mnemonic};
 use bitcoin::{
     bip32::{DerivationPath, Xpriv},
@@ -59,7 +59,7 @@ fn ed25519_child(seed: &[u8], path: &[u32]) -> Result<Zeroizing<[u8; 32]>, ()> {
     key.copy_from_slice(&node[..32]);
     Ok(key)
 }
-fn checksum_address(bytes: &[u8]) -> String {
+pub(crate) fn checksum_address(bytes: &[u8]) -> String {
     let lower = hex::encode(bytes);
     let digest = Keccak::new(lower.as_bytes()).to_bytes();
     let mut result = String::from("0x");

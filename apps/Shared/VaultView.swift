@@ -12,8 +12,10 @@ struct VaultView: View {
     @State private var nearby = false
     @State private var generator = false
     @State private var walletCreator = false
+    @State private var approvals = false
     @State private var error: ErrorMessage?
     var initialSelection: UUID? = nil
+    var initialCategory = "all"
     private var items: [VaultItem] {
         (session.contents?.items ?? []).filter { item in
             (category == "all" || category == item.kind.rawValue || (category == "favorites" && item.favorite) || category == "collection:" + item.collection)
@@ -23,7 +25,7 @@ struct VaultView: View {
     var body: some View {
         NavigationSplitView { sidebar } content: { itemList } detail: { detailPane }
         .privacySensitive().errorAlert($error)
-        .onAppear { if selected == nil { selected = initialSelection } }
+        .onAppear { if selected == nil { selected = initialSelection; category = initialCategory } }
         .simultaneousGesture(TapGesture().onEnded { session.touch() })
         .sheet(item: $editing) { item in ItemEditor(session: session, item: item) }
         .sheet(isPresented: $settings) { SettingsView(session: session) }
@@ -31,6 +33,7 @@ struct VaultView: View {
         .sheet(isPresented: $nearby) { NearbySyncView(session: session) }
         .sheet(isPresented: $generator) { GeneratorView() }
         .sheet(isPresented: $walletCreator) { WalletCreator(session: session) { id in selected = id; category = "wallet" } }
+        .sheet(isPresented: $approvals) { DeviceApprovalsView(session: session) }
     }
     private var sidebar: some View {
             List(selection: $category) {
@@ -49,6 +52,7 @@ struct VaultView: View {
                     Button { generator = true } label: { Label("Password generator", systemImage: "wand.and.stars") }.buttonStyle(.plain)
                     Button { pairing = true } label: { Label("Pair a device", systemImage: "qrcode") }.buttonStyle(.plain)
                     Button { nearby = true } label: { Label("Nearby sync", systemImage: "antenna.radiowaves.left.and.right") }.buttonStyle(.plain)
+                    Button { approvals = true } label: { Label("Device approvals", systemImage: "checkmark.shield") }.buttonStyle(.plain)
                     Button { settings = true } label: { Label("Settings & backup", systemImage: "gearshape") }.buttonStyle(.plain)
                 }
                 Section {
@@ -80,7 +84,10 @@ struct VaultView: View {
                         Image(systemName: item.kind.symbol).font(.title3).foregroundStyle(Theme.accent).frame(width: 40, height: 40).background(Theme.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
                         VStack(alignment: .leading, spacing: 5) {
                             Text(item.title).font(Theme.body(13).weight(.medium)).lineLimit(1)
-                            Text(item.username.isEmpty ? item.kind.label : item.username).font(Theme.body(11)).foregroundStyle(Theme.muted).lineLimit(1)
+                            Text(item.wallet.map { session.walletBalances[$0.id]?.chain.display ?? $0.network.coinLabel } ?? (item.username.isEmpty ? item.kind.label : item.username)).font(Theme.body(11)).foregroundStyle(Theme.muted).lineLimit(1)
+                            if let wallet = item.wallet, let balance = session.walletBalances[wallet.id] {
+                                Text(balance.chain.amount(balance.available)).font(Theme.body(12).weight(.medium)).foregroundStyle(Theme.accent)
+                            }
                         }
                         Spacer()
                         if item.favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.secondary) }

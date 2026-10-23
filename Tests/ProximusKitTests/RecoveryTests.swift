@@ -69,7 +69,9 @@ final class RecoveryTests: XCTestCase {
             let configuration = try RPCConfiguration(network: network, endpoint: URL(string: "https://rpc.example/json_rpc")!, username: "rpc", password: "node-auth-only")
             let request = try configuration.request()
             let body = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(request.httpBody)) as? [String: Any])
-            XCTAssertEqual(body["method"] as? String, methods[network]); XCTAssertEqual((body["params"] as? [String])?.count, 0)
+            XCTAssertEqual(body["method"] as? String, methods[network])
+            if network == .monero { XCTAssertEqual((body["params"] as? [String: Any])?.count, 0) }
+            else { XCTAssertEqual((body["params"] as? [String])?.count, 0) }
             XCTAssertNil(request.url?.user); XCTAssertTrue(request.value(forHTTPHeaderField: "Authorization")!.hasPrefix("Basic "))
         }
         for value in ["http://remote.example", "file:///tmp/secrets", "https://user:pass@rpc.example", "https://rpc.example/#fragment"] {

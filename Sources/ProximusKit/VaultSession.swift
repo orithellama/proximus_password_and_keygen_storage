@@ -15,9 +15,11 @@ import Combine
     private var recoveryOperation = false
     @Published public private(set) var conflictingHead: String?
     @Published public private(set) var indexEnabled: Bool
+    @Published public private(set) var walletBalances: [UUID: WalletBalance] = [:]
     private var key: SecretBytes?
     private var lockTask: Task<Void, Never>?
     private var lockGeneration: UInt64 = 0
+    private var transferringWallets = Set<UUID>()
     private let preferences: UserDefaults
     public var isUnlocked: Bool { contents != nil && key != nil }
     public var hasVault: Bool { repository.exists }
@@ -29,11 +31,25 @@ import Combine
     }
     #if DEBUG
     /// Isolated rendering fixtures. This entry point is absent from Release builds.
-    public static func visualFixture(contents: VaultContents, deviceID: UUID) throws -> VaultSession {
+    public static func visualFixture(contents: VaultContents, deviceID: UUID, sampleWalletBalances: Bool = false) throws -> VaultSession {
         let repository = try VaultRepository(directory: FileManager.default.temporaryDirectory.appendingPathComponent("proximus-preview-" + UUID().uuidString))
         let (state, key) = try repository.create(passphrase: "visual preview fixture only", recovery: VaultCrypto.random(32), contents: contents)
         let session = try VaultSession(repository: repository, deviceID: deviceID)
         session.state = state; session.key = try SecretBytes(key); session.contents = contents
+        if sampleWalletBalances {
+            for item in contents.items {
+                guard let wallet = item.wallet else { continue }
+                let identity: String, atoms: String
+                switch wallet.network {
+                case .solana: identity = WalletChain.solanaGenesis; atoms = "12500000000"
+                case .evm: identity = "1"; atoms = "1250000000000000000"
+                case .bitcoin: identity = "main"; atoms = "4500000"
+                case .monero: identity = "mainnet"; atoms = "2200000000000"
+                }
+                let amount = try NativeAmount(atoms)
+                session.walletBalances[wallet.id] = try WalletBalance(chain: WalletChain.resolve(wallet.network, identity: identity), available: amount, total: amount, checkedAt: Date(), detail: "Sample balance for app preview")
+            }
+        }
         return session
     }
     #endif
@@ -103,6 +119,7 @@ import Combine
         }
     }
     public func lock() {
+        walletBalances.removeAll()
         lockGeneration &+= 1
         recoveryEpoch &+= 1
         let backup = recoveryBackup; recoveryBackup = nil
@@ -352,5 +369,135 @@ import Combine
         if let relay = bundle.relay { try DeviceKeychain.write(Encoding.encode(relay), account: "relay/" + bundle.header.vaultID.uuidString) }
         try repository.install(header: bundle.header, snapshot: bundle.snapshot, key: bundle.vaultKey)
         try activate(key: bundle.vaultKey, state: repository.state())
+    }
+}
+
+extension VaultSession {
+    public func refreshWalletBalance(_ wallet: WalletMetadata) async throws {
+        guard isUnlocked, contents?.items.contains(where: { $0.wallet == wallet }) == true else { throw ProximusError.locked }
+        guard let configuration = try RPCConfiguration.load(wallet.network) else { throw ProximusError.unavailable("Add your RPC endpoint in Custom RPC nodes, then refresh this wallet.") }
+        let generation = lockGeneration
+        let value = try await WalletRPCClient(configuration: configuration).balance(wallet: wallet)
+        try requireGeneration(generation); walletBalances[wallet.id] = value; touch()
+    }
+    public func clearWalletBalances() { walletBalances.removeAll() }
+    private func requireTransferWallet(_ wallet: WalletMetadata) throws {
+        guard isUnlocked, contents?.items.contains(where: { $0.wallet == wallet }) == true else { throw ProximusError.locked }
+        guard wallet.ownerDeviceID == deviceID else { throw ProximusError.unavailable("Send from the original device that holds this wallet’s keys.") }
+        try LocalWalletStore(deviceID: deviceID).verifyRecord(wallet)
+    }
+    private func requireGeneration(_ generation: UInt64) throws {
+        try Task.checkCancellation()
+        guard isUnlocked, generation == lockGeneration else { throw ProximusError.locked }
+    }
+    public func approvalIdentity(name: String) async throws -> ApprovalIdentity {
+        guard isUnlocked, let vault = state?.header.vaultID else { throw ProximusError.locked }
+        let generation = lockGeneration, device = deviceID
+        let identity = try await Task.detached { try ApprovalKeys.identity(vault: vault, device: device, name: name) }.value
+        try requireGeneration(generation); return identity
+    }
+    public func trustApprovalDevice(_ peer: ApprovalIdentity) async throws {
+        guard isUnlocked, peer.vaultID == state?.header.vaultID, peer.deviceID != deviceID,
+              contents?.devices.contains(where: { $0.id == peer.deviceID }) == true else { throw ProximusError.invalid("Pair this device to the same vault first, then compare its approval fingerprint.") }
+        try peer.validate()
+        let generation = lockGeneration
+        try await Task.detached { try ApprovalKeys.authorize(vault: peer.vaultID, reason: "Trust the approval device whose fingerprint you compared") }.value
+        try requireGeneration(generation); try ApprovalStore.trust(peer); touch()
+    }
+    public func setApprovalDevice(_ peer: ApprovalIdentity?, wallet: WalletMetadata) async throws {
+        try requireTransferWallet(wallet)
+        guard let vault = state?.header.vaultID else { throw ProximusError.locked }
+        if let peer {
+            guard peer.deviceID != deviceID, peer.vaultID == vault,
+                  try ApprovalStore.peers(vault: vault).contains(peer), contents?.devices.contains(where: { $0.id == peer.deviceID }) == true else { throw ProximusError.authentication }
+        }
+        let generation = lockGeneration
+        try await Task.detached { try ApprovalKeys.authorize(vault: vault, reason: peer == nil ? "Turn off paired-device approval for this wallet" : "Require this paired device to approve wallet transfers") }.value
+        try requireGeneration(generation); try ApprovalStore.setPolicy(peer, wallet: wallet.id); touch()
+    }
+    public func makeApprovalRequest(_ plan: TransferPlan, deviceName: String) async throws -> TransferApprovalRequest {
+        try requireTransferWallet(plan.wallet); try plan.validate()
+        guard state?.header.vaultID == plan.vaultID, try ApprovalStore.policy(wallet: plan.wallet.id) != nil else { throw ProximusError.authentication }
+        let generation = lockGeneration, device = deviceID
+        let request = try await Task.detached {
+            let identity = try ApprovalKeys.identity(vault: plan.vaultID, device: device, name: deviceName)
+            let signature = try ApprovalKeys.sign(ApprovalKeys.message(plan, domain: "request"), vault: plan.vaultID, reason: "Request approval for this reviewed transfer")
+            return TransferApprovalRequest(plan: plan, requester: identity, signature: signature)
+        }.value
+        try requireGeneration(generation); try plan.validate(); touch(); return request
+    }
+    public func validateApprovalRequest(_ request: TransferApprovalRequest) throws {
+        guard isUnlocked, state?.header.vaultID == request.plan.vaultID,
+              contents?.items.contains(where: { $0.wallet == request.plan.wallet }) == true,
+              contents?.devices.contains(where: { $0.id == request.requester.deviceID }) == true,
+              let peer = try ApprovalStore.peers(vault: request.plan.vaultID).first(where: { $0.deviceID == request.requester.deviceID }) else { throw ProximusError.invalid("Trust the sending device’s fingerprint in Device approvals and sync this wallet’s public address first.") }
+        try request.validate(peer: peer, deviceID: deviceID)
+    }
+    public func approveTransfer(_ request: TransferApprovalRequest) async throws -> TransferApproval {
+        try validateApprovalRequest(request)
+        let generation = lockGeneration, device = deviceID, plan = request.plan
+        let signature = try await Task.detached { try ApprovalKeys.sign(ApprovalKeys.message(plan, domain: "approval"), vault: plan.vaultID, reason: "Approve sending " + plan.chain.amount(plan.amount) + " on " + plan.chain.name) }.value
+        try requireGeneration(generation); try validateApprovalRequest(request); touch()
+        return TransferApproval(requestID: plan.id, planDigest: try plan.fingerprint, deviceID: device, signature: signature)
+    }
+    public func prepareTransfer(wallet: WalletMetadata, client: WalletRPCClient, recipient: String, amount: String) async throws -> PreparedTransfer {
+        try requireTransferWallet(wallet)
+        guard let vault = state?.header.vaultID, !transferringWallets.contains(wallet.id) else { throw ProximusError.unavailable("A transfer operation is already running for this wallet.") }
+        transferringWallets.insert(wallet.id); defer { transferringWallets.remove(wallet.id) }
+        let generation = lockGeneration
+        if wallet.network == .monero {
+            try await Task.detached { try ApprovalKeys.authorize(vault: vault, reason: "Ask your local Monero companion to prepare a transfer without broadcasting") }.value
+            try requireGeneration(generation)
+        }
+        let transfer = try await client.prepare(wallet: wallet, vaultID: vault, recipient: recipient, amount: amount)
+        try requireGeneration(generation); touch(); return transfer
+    }
+    public func sendTransfer(_ transfer: PreparedTransfer, client: WalletRPCClient, approval: TransferApproval?) async throws -> TransferReceipt {
+        let plan = transfer.plan
+        try requireTransferWallet(plan.wallet); try plan.validate()
+        guard state?.header.vaultID == plan.vaultID, !transferringWallets.contains(plan.wallet.id),
+              try DeviceKeychain.read("transfer-used/" + plan.id.uuidString) == nil else { throw ProximusError.invalid("This transfer was already submitted or is in progress. Check its transaction ID before sending again.") }
+        transferringWallets.insert(plan.wallet.id); defer { transferringWallets.remove(plan.wallet.id) }
+        let generation = lockGeneration, device = deviceID
+        let policy = try ApprovalStore.policy(wallet: plan.wallet.id)
+        if let policy { guard contents?.devices.contains(where: { $0.id == policy.deviceID }) == true else { throw ProximusError.authentication } }
+        try ApprovalStore.verify(approval, plan: plan)
+        try await client.revalidate(transfer); try requireGeneration(generation)
+        let wire: NativeWire?
+        if plan.chain.network == .monero {
+            try await Task.detached { try ApprovalKeys.authorize(vault: plan.vaultID, reason: "Send " + plan.chain.amount(plan.amount) + " through your local Monero companion") }.value
+            wire = nil
+        } else {
+            wire = try await Task.detached(priority: .userInitiated) {
+                var material = try LocalWalletStore(deviceID: device, authenticationReason: "Sign the reviewed transfer of " + plan.chain.amount(plan.amount)).reveal(plan.wallet)
+                defer { material.privateKey = ""; material.recovery = ""; material.secondaryPrivateKey = "" }
+                guard var transaction = plan.transaction else { throw ProximusError.authentication }
+                transaction.action = "sign"; transaction.privateKey = material.privateKey
+                defer { transaction.privateKey = "" }
+                let result = try NativeSigner.process(transaction)
+                guard result.unsigned == plan.unsigned, plan.chain.network == .solana || result.fee == plan.fee.atoms else { throw ProximusError.authentication }
+                return result
+            }.value
+        }
+        try requireGeneration(generation)
+        // Authentication may take long enough to expire a blockhash or change a nonce.
+        try await client.revalidate(transfer); try requireGeneration(generation)
+        try requireTransferWallet(plan.wallet)
+        guard try ApprovalStore.policy(wallet: plan.wallet.id) == policy else { throw ProximusError.invalid("The wallet approval policy changed. Prepare a fresh transfer.") }
+        try ApprovalStore.verify(approval, plan: plan)
+        let transactionID = wire?.transactionId ?? plan.companionTransactionID ?? ""
+        guard !transactionID.isEmpty else { throw ProximusError.authentication }
+        var receipt = TransferReceipt(id: plan.id, walletID: plan.wallet.id, chain: plan.chain, transactionID: transactionID, recipient: plan.recipient, amount: plan.amount, date: Date(), status: "Submission started; confirmation unknown")
+        // Persist the expected ID and consume this review BEFORE making a network request.
+        // A timeout must never result in automatic signing of a replacement transfer.
+        try receipt.save()
+        try DeviceKeychain.write(Data(transactionID.utf8), account: "transfer-used/" + plan.id.uuidString)
+        do {
+            let returned = try await client.broadcast(wire, transfer: transfer)
+            receipt.status = returned == transactionID ? "Submitted to node; awaiting confirmation" : "Node returned a different ID. Check the expected transaction ID before sending again."
+        } catch { receipt.status = "Submission outcome unknown. Check this transaction ID before sending again." }
+        // The pre-broadcast receipt survives even if the device locks during submission.
+        try? receipt.save()
+        touch(); return receipt
     }
 }

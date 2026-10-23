@@ -32,6 +32,7 @@ final class WalletTests: XCTestCase {
         let material = try WalletCrypto.derive(network: .solana, recovery: fixture)
         let metadata = material.metadata(network: .solana, deviceID: device)
         try store.save(material, metadata: metadata)
+        try store.verifyRecord(metadata)
         XCTAssertTrue(store.contains(metadata))
         XCTAssertEqual(try store.reveal(metadata).privateKey, material.privateKey)
         XCTAssertThrowsError(try store.save(material, metadata: metadata))
@@ -44,6 +45,7 @@ final class WalletTests: XCTestCase {
         var modified = metadata; modified.ownerDeviceID = UUID()
         XCTAssertFalse(store.contains(modified)); XCTAssertThrowsError(try store.reveal(modified))
         modified = metadata; modified.address = "another address"
+        XCTAssertThrowsError(try store.verifyRecord(modified))
         XCTAssertThrowsError(try store.reveal(modified))
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: original) as? [String: Any])
         var publicFields = try XCTUnwrap(object["metadata"] as? [String: Any])
@@ -52,6 +54,7 @@ final class WalletTests: XCTestCase {
         XCTAssertThrowsError(try store.reveal(modified)) // altered AAD cannot decrypt
         try original.write(to: url)
         try store.remove(metadata); XCTAssertFalse(store.contains(metadata))
+        XCTAssertThrowsError(try store.verifyRecord(metadata))
     }
 
     func testProtectionFailureDoesNotWriteSecretOrPublicRecord() throws {

@@ -23,4 +23,8 @@ int32_t px_mnemonic(uint8_t *out, size_t capacity, size_t *out_len);
 // JSON contains secrets: caller must wipe output after use. Maximum capacity 8192.
 int32_t px_wallet(uint32_t network, const uint8_t *recovery, size_t recovery_len,
                   uint8_t *out, size_t capacity, size_t *out_len);
+// Bounded JSON native-coin transaction preparation/signing. Never performs I/O.
+// Input may contain a private key. Caller wipes input and output buffers.
+int32_t px_transaction(const uint8_t *input, size_t input_len,
+                       uint8_t *out, size_t capacity, size_t *out_len);
 #endif

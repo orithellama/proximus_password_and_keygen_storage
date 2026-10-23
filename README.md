@@ -2,7 +2,7 @@
 
 Free, open-source app for passwords, passkeys, and wallet keys for Mac, iPhone, and iPad. Local encrypted storage, QR device enrollment, and optional self-hosted sync. All features are included, with no subscription or purchase required.
 
-**Version 0.3.1 - Apache-2.0 - PROXIMUS Research Labs Foundation**
+**Version 0.4.0 - Apache-2.0 - PROXIMUS Research Labs Foundation**
 
 ## Features
 
@@ -10,6 +10,8 @@ Free, open-source app for passwords, passkeys, and wallet keys for Mac, iPhone, 
 - On-device password generator with saved settings
 - BIP-39 master passphrase generation
 - Solana, Ethereum/EVM, Bitcoin, and Monero wallet keys, addresses, and recovery
+- Chain labels, native-coin balances, reviewed transfers, and optional paired-device approval
+- Local Monero wallet companion support on Mac
 - Password AutoFill with exact HTTPS origin matching
 - Secure Enclave passkeys and device unlock
 - Local profile creation with Face ID / Touch ID unlock
@@ -30,7 +32,7 @@ Official downloads are listed at [proximus.sh/proximus-app](https://www.proximus
 
 ### Mac disk image
 
-1. Download `Proximus-0.3.1-macOS.dmg` from the official download page.
+1. Download `Proximus-0.4.0-macOS.dmg` from the official download page.
 2. Open the disk image.
 3. Drag **Proximus** onto **Applications**.
 4. Eject the disk image and open Proximus from Applications.
@@ -60,7 +62,7 @@ All Proximus application code, the relay, build tools, installers, packaging scr
 | Sync relay | Go 1.27.3 or later, or Docker |
 | Physical-device installation | Apple signing team, provisioning profiles, App Groups, and AutoFill capability |
 
-The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthentication, and Network.framework. A Rust library supplies Argon2id, AES-GCM, unbiased password generation, BIP-39, and wallet address derivation. The sync relay uses Go’s standard library.
+The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthentication, and Network.framework. A Rust library supplies Argon2id, AES-GCM, unbiased password generation, BIP-39, wallet address derivation, and restricted Solana/EVM/Bitcoin native-coin transaction construction and signing. The sync relay uses Go’s standard library.
 
 ## Installation from source
 
@@ -213,22 +215,60 @@ Wallet recovery phrases and private keys stay in a separate app-private store, e
 
 The **Delete item** action removes local wallet keys when no other current record references that wallet. A deletion received through sync only removes the address record and does not erase another device's key store. Standard vault exports cannot recover deleted wallet keys. Older recovery kits can recover keys included before deletion, even after newer kits remove them. Keep the separate recovery details before deleting, uninstalling, or replacing a device.
 
-This version generates keys, displays addresses, and provides encrypted recovery backup and restoration. It does not sign transactions, connect to dApps, send funds, or query balances. It is a software wallet protected at rest by Secure Enclave, not a dedicated hardware wallet. Apple Secure Enclave supports P-256 rather than these networks' signing curves. Revealed keys can be exposed by a compromised operating system. [Apple Secure Enclave key restrictions](https://developer.apple.com/documentation/security/protecting-keys-with-the-secure-enclave)
+Proximus displays native-coin balances and sends reviewed transfers through configured RPC nodes. Solana, EVM, and Bitcoin transactions are signed locally after device authentication. Monero uses a separately configured local wallet companion on Mac. dApp connections, tokens, contract calls, and on-chain multisig are not included. Apple Secure Enclave protects wallet keys at rest; the networks use signing curves that require decryption into app memory when signing or revealing keys. A compromised operating system can expose these keys or interfere with transactions. [Apple Secure Enclave key restrictions](https://developer.apple.com/documentation/security/protecting-keys-with-the-secure-enclave)
 
-### Custom RPC nodes and payments
+### Balances and sending
 
-Open **Settings → Custom RPC nodes**. Choose a network, enter its HTTPS JSON-RPC endpoint, optionally enter RPC username/password, then save or check the connection. HTTP is accepted only for explicit localhost endpoints. Credentials and provider API tokens in URLs stay in the device Keychain. Redirects are rejected and responses are capped at 256 KiB.
+Open a wallet, choose **RPC settings**, save your node, then select **Refresh balance**. The wallet list and details show the chain and its native symbol. Balances include their refresh time and remain in memory until the vault locks. No third-party balance service or default public RPC is selected automatically.
 
-| Network | Read-only connection check | Endpoint type |
+| Network | Balance and sending | Requirements |
 | --- | --- | --- |
-| Solana | `getGenesisHash` | Solana JSON-RPC |
-| EVM | `eth_chainId` | Ethereum-compatible JSON-RPC |
-| Bitcoin | `getblockchaininfo` | Bitcoin Core JSON-RPC, not an Esplora REST endpoint |
-| Monero | `get_info` | Monero daemon `/json_rpc` |
+| Solana mainnet | SOL balance, local Ed25519 signing, preflight and submission | Solana JSON-RPC matching the mainnet genesis hash |
+| Ethereum / EVM | Native gas-coin balance, local EIP-155 signing | Ethereum (ETH), BNB Smart Chain (BNB), Polygon PoS (POL), Avalanche C-Chain (AVAX), or Ethereum Sepolia (test ETH) |
+| Bitcoin mainnet | Confirmed safe outputs, local native SegWit signing | Synced Bitcoin Core wallet RPC tracking the public address; 1–32 inputs per transfer |
+| Monero mainnet | Unlocked and total balance, companion preparation and relay | Mac with an authenticated local `monero-wallet-rpc` holding the matching wallet |
 
-Checks send no wallet addresses, recovery phrases, private keys, or transactions. The returned chain ID/genesis/height is a node claim, not proof of correctness. RPC settings do not change wallet derivation paths or switch the generated Bitcoin/Monero addresses away from mainnet. Remote nodes require HTTPS, including nodes on a local network. Localhost refers to the device running the app.
+1. Choose **Send crypto** and enter the destination address and a decimal amount.
+2. Select **Review transfer**. Check the chain, full source and recipient addresses, amount, fee, and total. EVM shows a maximum fee; unused gas is not charged.
+3. If configured, obtain approval from the paired device for this exact review.
+4. Select **Authenticate & send** and approve Face ID, Touch ID, or the device password/passcode.
+5. Keep the transaction ID and use **Check confirmation**. A node accepting a transaction does not mean it is confirmed.
 
-Exchanging an address with someone nearby can be offline. A blockchain transfer requires constructing a transaction, authorizing and signing it locally, broadcasting the signed transaction through a node, and waiting for confirmation. A nearby QR or radio message alone does not settle payment. Signing, broadcasting, balances, and offline transaction exchange are not implemented in this version. [Solana transaction submission](https://solana.com/docs/rpc/http/sendtransaction), [Ethereum JSON-RPC](https://ethereum.org/developers/docs/apis/json-rpc/), [Bitcoin Core transaction submission](https://bitcoincore.org/en/doc/30.0.0/rpc/rawtransactions/sendrawtransaction/)
+Amounts use exact atomic-unit arithmetic. The app reconstructs Solana, EVM, and Bitcoin transaction bytes from the review before signing. It rechecks the chain, Solana blockhash and fee, EVM pending nonce and account code, or Bitcoin input availability before broadcasting. Bitcoin input values and source scripts come from complete previous transactions, and change returns to the source address. Native EVM sending supports plain accounts with no contract/delegation code and empty calldata. Networks with additional data fees, tokens, contract interactions, send-max, replace-by-fee, and integrated Monero payment-ID addresses are not supported.
+
+The sender must be the device holding this wallet's keys. A paired address-only record can display balances and receive funds, but cannot sign. Transfer reviews expire; an expired review needs fresh preparation and approval. The expected transaction ID is saved before submission. Timeouts retain an unknown-status record and never automatically retry or create a replacement payment. Check the previous ID before explicitly creating another transfer.
+
+### Custom RPC nodes
+
+Open **Settings → Custom RPC nodes**, or **RPC settings** inside a wallet. Endpoints and credentials stay in this device's Keychain and are excluded from recovery kits. Remote nodes require HTTPS. HTTP is accepted only for loopback addresses; Monero wallet companions require literal `127.0.0.1` or `[::1]` and RPC authentication. Redirects are rejected. Connection-check responses are capped at 256 KiB; transaction RPC responses at 2 MiB.
+
+Connection checks use `getGenesisHash` (Solana), `eth_chainId` (EVM), `getblockchaininfo` (Bitcoin), and `get_info` (Monero daemon) or `get_version` (Monero wallet companion). They do not send wallet addresses or private keys. Refreshing a balance discloses the public address to the configured node. Sending submits the reviewed signed transaction. A node's chain, balance, and confirmation responses are claims from that node, not independent chain verification.
+
+For Bitcoin, create or use a Bitcoin Core watch-only descriptor wallet, import `addr(YOUR_BITCOIN_ADDRESS)` with its descriptor checksum and an appropriate rescan timestamp, and let the rescan finish. Configure the wallet endpoint, such as `http://127.0.0.1:8332/wallet/proximus`, with Core RPC authentication. An untracked address produces a setup error instead of a misleading zero balance. Core does not need the private key. [Bitcoin descriptor import](https://bitcoincore.org/en/doc/30.0.0/rpc/wallet/importdescriptors/), [descriptor checksums](https://bitcoincore.org/en/doc/30.0.0/rpc/util/getdescriptorinfo/)
+
+For Monero on Mac:
+
+1. Install the official Monero CLI tools and verify their download using the [Monero download instructions](https://www.getmonero.org/downloads/).
+2. Open or manually restore the matching wallet in Monero software. Its primary address must match the Proximus address. Use the separately saved spend/view keys and restore height when needed; Proximus never transfers them automatically.
+3. Run `monero-wallet-rpc` on loopback with RPC authentication and the matching wallet loaded. Let it scan through the current chain height. The companion maintains its own wallet files and key protection, separate from Proximus.
+4. In Proximus **RPC settings → Monero**, enable **Local wallet companion**, enter `http://127.0.0.1:18082/json_rpc` (or your configured local port), and enter its RPC username/password. HTTP Digest authentication is supported.
+
+Preparing XMR asks the companion to construct and sign with `do_not_relay: true`. Proximus then shows its returned amount and fee, binds the prepared metadata digest and transaction ID into any paired approval, and calls `relay_tx` only after final device authorization. The prepared metadata stays on the sending Mac; approval files contain its digest, not the signed payload. Proximus trusts the local companion for Monero transaction construction and does not independently decode its confidential outputs. A watch-only companion cannot sign, and the companion's own interfaces can operate outside Proximus's approval policy. [Monero wallet RPC](https://docs.getmonero.org/rpc-library/wallet-rpc/), [wallet companion configuration](https://docs.getmonero.org/interacting/monero-wallet-rpc-reference/)
+
+Exchanging addresses and approval codes with someone nearby can happen offline, including QR scanning or AirDrop file exchange. A blockchain payment still needs a connected node to broadcast and the network to confirm it. Nearby exchange alone does not settle a payment. [Solana submission](https://solana.com/docs/rpc/http/sendtransaction), [Ethereum JSON-RPC](https://ethereum.org/developers/docs/apis/json-rpc/), [Bitcoin submission](https://bitcoincore.org/en/doc/30.0.0/rpc/rawtransactions/sendrawtransaction/)
+
+### Paired-device transfer approval
+
+1. Pair and sync the vault so both devices have the same wallet's public record.
+2. Open **Device approvals** on both devices and show each device's approval code.
+3. Import the other device's code on each side. Compare the full fingerprint on the actual device screens before choosing **Trust this device**.
+4. On the wallet's original device, open **Device approval**, select the trusted approver, and save. Changing or disabling the requirement needs device authentication.
+5. Prepare a transfer and choose **Create approval request**. On the other device, choose **Device approvals → Review a transfer**, import or scan the request, check all details, and authenticate.
+6. Return its approval code to the sender, then authenticate and send. Large Bitcoin requests use exported files/AirDrop because full input transactions may not fit a QR code.
+
+Each device uses an independent Secure Enclave P-256 approval identity, separate from the shared vault encryption key. Requests and responses use different signature domains. The signature binds the vault, wallet, source device, unique review identifier, chain, recipient, exact amount, fee, transaction construction data, and expiry. The approver reconstructs Solana/EVM/Bitcoin unsigned bytes from the review. A changed, expired, wrongly signed, or already submitted review is rejected. Fingerprints, wallet approval policies, and the latest transfer record are local device data and are not synced or included in recovery kits. Configure trust and policies again after recovery on another device.
+
+This is **app-enforced paired-device approval**, not blockchain multisig. The chain receives a normal single-key transaction. It cannot stop someone who controls the signing device, the Monero companion, or a separately restored recovery phrase from using another signing path.
 
 ## Pair a device
 
@@ -309,7 +349,7 @@ Public endpoints use HTTPS. Plain HTTP is accepted only for localhost developmen
 
 Titles, usernames, websites, passwords, notes, collections, and device names are encrypted inside snapshots. The unencrypted header contains format and recovery-envelope data. Locking drops session data and clears the dedicated key buffer. SwiftUI and operating-system APIs can retain temporary plaintext copies while an item is in use.
 
-Storage encryption protects locked vault data. A website receives a password when it is filled. A compromised operating system can capture passwords in use or misuse a signed-in session. Secure Enclave keeps passkey signing keys and wallet wrapping keys non-exportable. Wallet signing keys use other curves and are decrypted into app memory when revealed. Session security and account recovery remain separate controls.
+Storage encryption protects locked vault data. A website receives a password when it is filled. A compromised operating system can capture passwords in use or misuse a signed-in session. Secure Enclave keeps passkey signing keys and wallet wrapping keys non-exportable. Wallet signing keys use other curves and are decrypted into app memory when signing or revealed. Session security and account recovery remain separate controls.
 
 Disconnecting sync does not revoke keys already held by a paired device. Lost-device response includes account session revocation, password rotation, and migration to a fresh vault and relay namespace.
 
@@ -337,6 +377,10 @@ bash scripts/verify.sh --apple
 cargo install cargo-audit --version 0.22.2 --locked
 bash scripts/security-audit.sh
 ```
+
+Transfer tests cover exact amounts, unsigned-byte reconstruction, EIP-155 reference signatures, Solana signature and preflight handling, Bitcoin prevout/fee/signature validation, Monero address matching and no-relay preparation, RPC response IDs and size limits, and approval tampering, expiry, wrong-key and domain-reflection rejection. No live funds are moved by these tests.
+
+Version 0.4.0 verification: 15 Rust tests, 31 Swift tests (including a real loopback HTTP Digest exchange), Go race tests/vet, and five release-tool tests pass. Mac and iPhone/iPad app and AutoFill targets compile. Funded end-to-end transfers, physical-device biometric approval, and a real synced Monero companion have not been exercised by the automated suite.
 
 Tests cover BIP-39, BIP-84, SLIP-0010, EIP-55 and Monero derivation vectors, wallet recovery, device ownership and metadata binding, exclusion of wallet secrets from ordinary snapshots and vault exports, encrypted recovery-kit round trips and tamper rejection, read-only RPC requests and endpoint validation, bounded file reads, known-answer encryption vectors, corrupted snapshots, recovery factors, concurrent edits, backup restoration, exact-origin matching, pairing transcripts, nearby authentication and replay rejection, encrypted socket transfers, nearby push/pull and conflict handling, WebAuthn encoding, CSV imports, relay compare-and-swap, and slow-upload isolation. Physical-device verification must additionally cover provisioning, biometric wallet recovery, iCloud upload/download and bookmark persistence, recovery on a replacement device, browser registration and assertions, password AutoFill, and peer-to-peer radio connectivity. Automated tests use an isolated protection implementation for wallet file storage and do not validate biometric hardware.
 
@@ -374,7 +418,7 @@ Raw scan output and build/test logs are local artifacts under `build/security-au
 
 ## Version control and releases
 
-Version 0.3.1 adds DMG packaging, source revision metadata, signed release validation, GitHub publication tooling, and iOS distribution archive commands. Version 0.3.0 added local profile setup with device unlock, opt-in encrypted recovery kits, custom read-only RPC settings, and security fixes. Version 0.2.0 introduced the Proximus name, BIP-39 generation, and wallet key storage. Bundle identifiers and existing vault paths are unchanged. The installer retains the previous app bundle. Upgrade all paired devices before adding wallet records, because older versions cannot read the new item kind.
+Version 0.4.0 adds chain labels, native-coin balances and sending, paired-device approval, and a local Monero companion on Mac. Version 0.3.1 added DMG packaging, source revision metadata, signed release validation, GitHub publication tooling, and iOS distribution archive commands. Version 0.3.0 added local profile setup with device unlock, opt-in encrypted recovery kits, custom read-only RPC settings, and security fixes. Version 0.2.0 introduced the Proximus name, BIP-39 generation, and wallet key storage. Bundle identifiers and existing vault paths are unchanged. The installer retains the previous app bundle. Upgrade all paired devices before adding wallet records, because older versions cannot read the new item kind.
 
 `VERSION` matches `MARKETING_VERSION` in `Config/Base.xcconfig` and the Rust crate version. Vault format version `1` is independent of the application version. Unsupported formats are rejected.
 
@@ -384,10 +428,10 @@ git log --oneline
 git switch -c feature/short-description
 ```
 
-Release tags use `vMAJOR.MINOR.PATCH`. The application version is **v0.3.1**, build **4**. The public artifact is `Proximus-0.3.1-macOS.dmg`.
+Release tags use `vMAJOR.MINOR.PATCH`. The application version is **v0.4.0**, build **5**. The public artifact is `Proximus-0.4.0-macOS.dmg`.
 
 <!-- release-notes:start -->
-### Proximus 0.3.1
+### Proximus 0.4.0
 
 Free, open-source storage for passwords, passkeys, secure notes, and wallet keys.
 
@@ -397,12 +441,14 @@ Free, open-source storage for passwords, passkeys, secure notes, and wallet keys
 - Solana, EVM, Bitcoin, and Monero wallet addresses, keys, and recovery.
 - Optional encrypted recovery kits saved to iCloud Drive or a chosen local folder.
 - QR device pairing, nearby encrypted sync, and an optional self-hosted relay.
-- Custom RPC endpoints for read-only connection checks.
+- Custom RPC endpoints, chain-aware balances, and reviewed native-coin sending.
+- Optional paired-device approval with independent hardware-protected signing identities.
+- Local Monero companion support on Mac; no automatic key transfer.
 - Official download verification against an approved SHA-256 checksum.
 
 Official downloads are listed at https://www.proximus.sh/proximus-app. Open the Mac DMG and drag Proximus to Applications. Requires an Apple silicon Mac with macOS 14 or later.
 
-Wallet support covers keys, addresses, and recovery. Transaction signing and sending are not included. iPhone and iPad source is included, with a separate TestFlight invitation to follow once distribution is configured.
+Native sending covers SOL, supported EVM gas coins, BTC, and XMR through a local Mac companion. Tokens, dApps, and blockchain multisig are not included. Paired-device approval is enforced by the app. iPhone and iPad source is included, with a separate TestFlight invitation to follow once distribution is configured.
 
 Source: https://github.com/orithellama/proximus_password_and_keygen_storage
 License: Apache-2.0. All Proximus features are free.

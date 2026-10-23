@@ -7,18 +7,33 @@ public final class BoundedHTTP: NSObject, URLSessionDataDelegate, URLSessionTask
     private var buffer = Data()
     private var response: HTTPURLResponse?
     private let limit: Int
-    private init(limit: Int) { self.limit = limit }
-    public static func send(_ request: URLRequest, limit: Int = VaultCrypto.maximumPayload * 2) async throws -> (Data, HTTPURLResponse) {
-        let delegate = BoundedHTTP(limit: limit)
+    private let digestCredential: URLCredential?
+    private let origin: URL?
+    private init(limit: Int, origin: URL?, digestCredential: URLCredential?) { self.limit = limit; self.origin = origin; self.digestCredential = digestCredential }
+    public static func send(_ request: URLRequest, limit: Int = VaultCrypto.maximumPayload * 2, digestCredential: URLCredential? = nil) async throws -> (Data, HTTPURLResponse) {
+        try Task.checkCancellation()
+        let delegate = BoundedHTTP(limit: limit, origin: request.url, digestCredential: digestCredential)
         return try await withCheckedThrowingContinuation { continuation in
             delegate.continuation = continuation
             let config = URLSessionConfiguration.ephemeral
             config.httpCookieStorage = nil; config.urlCache = nil
+            config.urlCredentialStorage = nil
+            // A local wallet companion must not be routed through a configured proxy.
+            if digestCredential != nil { config.connectionProxyDictionary = [:] }
             config.timeoutIntervalForRequest = 20; config.timeoutIntervalForResource = 60
             let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
             delegate.session = session
             session.dataTask(with: request).resume()
         }
+    }
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let space = challenge.protectionSpace
+        if space.authenticationMethod == NSURLAuthenticationMethodHTTPDigest,
+           challenge.previousFailureCount == 0, let credential = digestCredential, let origin,
+           space.host.trimmingCharacters(in: CharacterSet(charactersIn: "[]")) == origin.host?.trimmingCharacters(in: CharacterSet(charactersIn: "[]")),
+           space.protocol == origin.scheme, space.port == (origin.port ?? (origin.scheme == "https" ? 443 : 80)) {
+            completionHandler(.useCredential, credential)
+        } else { completionHandler(.performDefaultHandling, nil) }
     }
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {

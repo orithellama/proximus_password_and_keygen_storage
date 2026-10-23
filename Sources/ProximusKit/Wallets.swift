@@ -11,7 +11,7 @@ public enum WalletNetwork: String, Codable, CaseIterable, Identifiable, Sendable
 }
 
 /// Only public data enters vault snapshots, pairing bundles, and relay sync.
-public struct WalletMetadata: Codable, Equatable {
+public struct WalletMetadata: Codable, Equatable, Sendable {
     public var id: UUID
     public var ownerDeviceID: UUID
     public var network: WalletNetwork
@@ -28,7 +28,7 @@ public struct WalletMetadata: Codable, Equatable {
 }
 
 /// Secret material is never a field of VaultItem or VaultContents.
-public struct WalletMaterial: Codable {
+public struct WalletMaterial: Codable, Sendable {
     public var address: String
     public var publicKey: String
     public var derivationPath: String
@@ -72,9 +72,9 @@ public struct LocalWalletStore {
     private let protect: (Data, Data) throws -> Data
     private let unprotect: (Data, Data) throws -> Data
     private struct Stored: Codable { var format = 1; var metadata: WalletMetadata; var envelope: Data }
-    public init(deviceID: UUID) throws {
+    public init(deviceID: UUID, authenticationReason: String = "Show this wallet’s recovery phrase and private keys") throws {
         let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        try self.init(directory: root.appendingPathComponent((Bundle.main.bundleIdentifier ?? "org.proximus.passwords") + ".device-wallets", isDirectory: true), deviceID: deviceID, protect: WalletProtection.seal, unprotect: { try WalletProtection.open($0, context: $1) })
+        try self.init(directory: root.appendingPathComponent((Bundle.main.bundleIdentifier ?? "org.proximus.passwords") + ".device-wallets", isDirectory: true), deviceID: deviceID, protect: WalletProtection.seal, unprotect: { try WalletProtection.open($0, context: $1, reason: authenticationReason) })
     }
     init(directory: URL, deviceID: UUID, protect: @escaping (Data, Data) throws -> Data, unprotect: @escaping (Data, Data) throws -> Data) throws {
         self.directory = directory; self.deviceID = deviceID; self.protect = protect; self.unprotect = unprotect
@@ -95,12 +95,18 @@ public struct LocalWalletStore {
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
         var values = URLResourceValues(); values.isExcludedFromBackup = true; try url.setResourceValues(values)
     }
-    public func reveal(_ metadata: WalletMetadata) throws -> WalletMaterial {
+    private func stored(_ metadata: WalletMetadata) throws -> Stored {
         guard metadata.ownerDeviceID == deviceID else { throw ProximusError.unavailable("Open this wallet on the device that holds its keys.") }
         let url = file(metadata)
         guard (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max) <= 32768 else { throw ProximusError.authentication }
         let stored = try Encoding.decode(Stored.self, from: BoundedFile.read(url, limit: 32768))
         guard stored.format == 1, stored.metadata == metadata else { throw ProximusError.authentication }
+        return stored
+    }
+    /// Public synced metadata alone never grants access to a local signing path.
+    func verifyRecord(_ metadata: WalletMetadata) throws { _ = try stored(metadata) }
+    public func reveal(_ metadata: WalletMetadata) throws -> WalletMaterial {
+        let stored = try stored(metadata)
         var plain = try unprotect(stored.envelope, metadata.context)
         defer { plain.resetBytes(in: 0..<plain.count) }
         let material = try Encoding.decode(WalletMaterial.self, from: plain)

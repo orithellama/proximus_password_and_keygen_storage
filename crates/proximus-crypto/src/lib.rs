@@ -7,6 +7,7 @@ use aes_gcm::{
 use argon2::{Algorithm, Argon2, Params, Version};
 use std::{ptr, slice};
 use zeroize::{Zeroize, Zeroizing};
+mod transactions;
 mod wallets;
 
 const MAX_PAYLOAD: usize = 8 * 1024 * 1024;
