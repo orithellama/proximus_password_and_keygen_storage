@@ -1,0 +1,4 @@
+module ProximusCrypto {
+    header "proximus_crypto.h"
+    export *
+}

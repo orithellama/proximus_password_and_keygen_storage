@@ -1,0 +1,3 @@
+// Copy to Local.xcconfig. Register all bundle identifiers and the shared App Group with this team.
+DEVELOPMENT_TEAM = YOURTEAMID
+PROXIMUS_BUNDLE_PREFIX = org.yourname.proximuspasswords

@@ -1,0 +1,15 @@
+[package]
+name = "proximus-crypto"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+aes-gcm = "=0.10.3"
+argon2 = "=0.5.3"
+getrandom = "=0.2.17"
+zeroize = "=1.9.0"

@@ -1,0 +1,911 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+		8268F546DF5E423F9A0106E9 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/Brand.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		A37103305BA47FF833640B2F = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/PairingView.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		6E6B8ECEC2C1CF3090A74FF0 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/Platform.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		1C688EF783233AC13A4E1900 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/PreviewCapture.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		DF9A76354797464DC57C1D59 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/ProximusApp.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		84D1714E6D2E628AB2F9AFE2 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/SettingsView.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		E6E49770F56D380597D45BBC = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/VaultView.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		70359F311BC22671C0A79F54 = {
+			isa = "PBXFileReference";
+			path = "apps/Shared/WelcomeView.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		30A78C9A7E828045EF9BFFA6 = {
+			isa = "PBXFileReference";
+			path = "apps/AutoFill/CredentialProviderViewController.swift";
+			sourceTree = "<group>";
+			lastKnownFileType = "sourcecode.swift";
+		};
+		8E0205CD89BF271E3726B26F = {
+			isa = "PBXFileReference";
+			path = "Config/Base.xcconfig";
+			sourceTree = "<group>";
+			lastKnownFileType = "text.xcconfig";
+		};
+		F9A6F80A177F0B51A8BE8F80 = {
+			isa = "PBXFileReference";
+			path = "apps/Assets.xcassets";
+			sourceTree = "<group>";
+			lastKnownFileType = "folder.assetcatalog";
+		};
+		4211CD2D91113764716BB9E8 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon20x20@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		9F09A9A979B3F1220B6041DC = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon20x20@3x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		B8E90729D23966701E3A52E0 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon29x29@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		F3014FC883AFCF50CB9408C0 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon29x29@3x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		065F05F84A4AD7E122C33893 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon40x40@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		98D30CDD8BEBC5B6F18C6C84 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon40x40@3x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		AAD5FA474B534753B6060099 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon60x60@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		7D34277DF083009AC3750617 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon60x60@3x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		E08B684124F676F4E3519FC7 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon76x76@1x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		F3500FAF5682066C3757A042 = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon76x76@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		AA5AB1DBEFD4131FEED6236D = {
+			isa = "PBXFileReference";
+			path = "apps/iOSIcons/AppIcon83.5x83.5@2x.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		435AD77D2B314FD4E42E1D6B = {
+			isa = "PBXFileReference";
+			path = "apps/Brand/ProximusWings.png";
+			sourceTree = "<group>";
+			lastKnownFileType = "image.png";
+		};
+		F9199AAD467EFBE0875AAD15 = {
+			isa = "PBXFileReference";
+			path = "apps/Fonts/Sora-OFL.txt";
+			sourceTree = "<group>";
+			lastKnownFileType = "file";
+		};
+		D2A0516F04FFE60A704D78F2 = {
+			isa = "PBXFileReference";
+			path = "apps/Fonts/Sora.ttf";
+			sourceTree = "<group>";
+			lastKnownFileType = "file";
+		};
+		8D5BA17279E0E105E8C8A161 = {
+			isa = "PBXFileReference";
+			path = "apps/Fonts/Space-Grotesk-OFL.txt";
+			sourceTree = "<group>";
+			lastKnownFileType = "file";
+		};
+		6AE41E537B085339EA258DDA = {
+			isa = "PBXFileReference";
+			path = "apps/Fonts/SpaceGrotesk.ttf";
+			sourceTree = "<group>";
+			lastKnownFileType = "file";
+		};
+		6D2E5714560CB3D4DD7C46F0 = {
+			isa = "PBXFileReference";
+			path = "Config/PrivacyInfo.xcprivacy";
+			sourceTree = "<group>";
+			lastKnownFileType = "text.xml";
+		};
+		BC4A71180870F7945155FBB0 = {
+			isa = "XCLocalSwiftPackageReference";
+			relativePath = ".";
+		};
+		27EC99E8C73065BDE2590C7C = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.app-extension";
+			path = "ProximusAutoFill.appex";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		3D428F26863B5850E6812844 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = BC4A71180870F7945155FBB0;
+			productName = "ProximusKit";
+		};
+		B6A7500528668EA1917AFC7C = {
+			isa = "PBXBuildFile";
+			productRef = 3D428F26863B5850E6812844;
+		};
+		CED65133A91FF60DDA00A047 = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (B6A7500528668EA1917AFC7C,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A2F93A7DBD1CE5C9AF86820A = {
+			isa = "PBXBuildFile";
+			fileRef = 30A78C9A7E828045EF9BFFA6;
+		};
+		9CA34BC03BE2768B01747387 = {
+			isa = "PBXBuildFile";
+			fileRef = 8268F546DF5E423F9A0106E9;
+		};
+		DDD3E145D8EDC12AB4ACA91C = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (A2F93A7DBD1CE5C9AF86820A, 9CA34BC03BE2768B01747387,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C5449E283B927DAF5D801E57 = {
+			isa = "PBXBuildFile";
+			fileRef = 435AD77D2B314FD4E42E1D6B;
+		};
+		2311A2EF1AAA6D8DE1619339 = {
+			isa = "PBXBuildFile";
+			fileRef = F9199AAD467EFBE0875AAD15;
+		};
+		CB5B1CB96F43C35990087A47 = {
+			isa = "PBXBuildFile";
+			fileRef = D2A0516F04FFE60A704D78F2;
+		};
+		FDD714EF175F8125D21FFD59 = {
+			isa = "PBXBuildFile";
+			fileRef = 8D5BA17279E0E105E8C8A161;
+		};
+		C3DFC71FACEB0D0187C90A8E = {
+			isa = "PBXBuildFile";
+			fileRef = 6AE41E537B085339EA258DDA;
+		};
+		A346940232D34851BE6668A7 = {
+			isa = "PBXBuildFile";
+			fileRef = 6D2E5714560CB3D4DD7C46F0;
+		};
+		8658846B84F2C3A878593BA5 = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (C5449E283B927DAF5D801E57, 2311A2EF1AAA6D8DE1619339, CB5B1CB96F43C35990087A47, FDD714EF175F8125D21FFD59, C3DFC71FACEB0D0187C90A8E, A346940232D34851BE6668A7,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		778A11FF25718A7ED8C5960A = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "ProximusAutoFill";
+				PRODUCT_MODULE_NAME = "ProximusAutoFill";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).mac.autofill";
+				INFOPLIST_FILE = "Config/AutoFill-macOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/AutoFill-macOS.entitlements";
+				SDKROOT = "macosx";
+				SUPPORTED_PLATFORMS = "macosx";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
+				DEBUG_INFORMATION_FORMAT = "dwarf";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "YES";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+			};
+			name = "Debug";
+		};
+		B8A138E8D27B16558D62344B = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "ProximusAutoFill";
+				PRODUCT_MODULE_NAME = "ProximusAutoFill";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).mac.autofill";
+				INFOPLIST_FILE = "Config/AutoFill-macOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/AutoFill-macOS.entitlements";
+				SDKROOT = "macosx";
+				SUPPORTED_PLATFORMS = "macosx";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "YES";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+			};
+			name = "Release";
+		};
+		FA488C6AD0A20834A35404F8 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (778A11FF25718A7ED8C5960A, B8A138E8D27B16558D62344B,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		4346F1D5A3562BF4C4BF9D95 = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = FA488C6AD0A20834A35404F8;
+			buildPhases = (DDD3E145D8EDC12AB4ACA91C, CED65133A91FF60DDA00A047, 8658846B84F2C3A878593BA5,);
+			buildRules = ();
+			dependencies = ();
+			name = "AutoFill-macOS";
+			packageProductDependencies = (3D428F26863B5850E6812844,);
+			productName = "AutoFill-macOS";
+			productReference = 27EC99E8C73065BDE2590C7C;
+			productType = "com.apple.product-type.app-extension";
+		};
+		899B8B6E423387D6BD482AC3 = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.application";
+			path = "Proximus Passwords.app";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		1CC50F86AFD091FAF84DF8D7 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = BC4A71180870F7945155FBB0;
+			productName = "ProximusKit";
+		};
+		E1F316DA7E3835F94B7E64C9 = {
+			isa = "PBXBuildFile";
+			productRef = 1CC50F86AFD091FAF84DF8D7;
+		};
+		912C11229F3332C8F6328C06 = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (E1F316DA7E3835F94B7E64C9,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		19DEEA79DF6B29CC43B465A9 = {
+			isa = "PBXBuildFile";
+			fileRef = 8268F546DF5E423F9A0106E9;
+		};
+		E7A10E6CF60BC50C55267FA8 = {
+			isa = "PBXBuildFile";
+			fileRef = A37103305BA47FF833640B2F;
+		};
+		8CDA3C8125B6E13C2A72105E = {
+			isa = "PBXBuildFile";
+			fileRef = 6E6B8ECEC2C1CF3090A74FF0;
+		};
+		022FC8A7B96FE13431F3BDD7 = {
+			isa = "PBXBuildFile";
+			fileRef = 1C688EF783233AC13A4E1900;
+		};
+		BB7E2136E8C238621EFAC0D9 = {
+			isa = "PBXBuildFile";
+			fileRef = DF9A76354797464DC57C1D59;
+		};
+		EC1028C78221495C9E70C24D = {
+			isa = "PBXBuildFile";
+			fileRef = 84D1714E6D2E628AB2F9AFE2;
+		};
+		DBF7835688531EDBBC4D4C03 = {
+			isa = "PBXBuildFile";
+			fileRef = E6E49770F56D380597D45BBC;
+		};
+		8412B5C1F625063BE65375BC = {
+			isa = "PBXBuildFile";
+			fileRef = 70359F311BC22671C0A79F54;
+		};
+		560CADB23F6D84E5932FB97C = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (19DEEA79DF6B29CC43B465A9, E7A10E6CF60BC50C55267FA8, 8CDA3C8125B6E13C2A72105E, 022FC8A7B96FE13431F3BDD7, BB7E2136E8C238621EFAC0D9, EC1028C78221495C9E70C24D, DBF7835688531EDBBC4D4C03, 8412B5C1F625063BE65375BC,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		73778E1DDDDE5D920E55891C = {
+			isa = "PBXBuildFile";
+			fileRef = 435AD77D2B314FD4E42E1D6B;
+		};
+		80B78457DAD9EED6CD575233 = {
+			isa = "PBXBuildFile";
+			fileRef = F9199AAD467EFBE0875AAD15;
+		};
+		1887BA1B0C4CAABA5FBB41A1 = {
+			isa = "PBXBuildFile";
+			fileRef = D2A0516F04FFE60A704D78F2;
+		};
+		ACD6103D7BD2A41A0B19EBE5 = {
+			isa = "PBXBuildFile";
+			fileRef = 8D5BA17279E0E105E8C8A161;
+		};
+		B37DBFCBEB4047B948C717DC = {
+			isa = "PBXBuildFile";
+			fileRef = 6AE41E537B085339EA258DDA;
+		};
+		D67E113AFC1C1C55F2739773 = {
+			isa = "PBXBuildFile";
+			fileRef = F9A6F80A177F0B51A8BE8F80;
+		};
+		CF36F534F4A2FD7A2DF9907E = {
+			isa = "PBXBuildFile";
+			fileRef = 6D2E5714560CB3D4DD7C46F0;
+		};
+		18DFC5F28C560E3A7C63BF73 = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (73778E1DDDDE5D920E55891C, 80B78457DAD9EED6CD575233, 1887BA1B0C4CAABA5FBB41A1, ACD6103D7BD2A41A0B19EBE5, B37DBFCBEB4047B948C717DC, D67E113AFC1C1C55F2739773, CF36F534F4A2FD7A2DF9907E,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		07C9EC0E2B58F4A7E1C29C57 = {
+			isa = "PBXBuildFile";
+			fileRef = 27EC99E8C73065BDE2590C7C;
+			settings = {
+				ATTRIBUTES = ("RemoveHeadersOnCopy",);
+			};
+		};
+		CCE1574796F5EC9B5AABD3F3 = {
+			isa = "PBXCopyFilesBuildPhase";
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (07C9EC0E2B58F4A7E1C29C57,);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DC5214B1B68A5FB1162F407B = {
+			isa = "PBXContainerItemProxy";
+			containerPortal = 244210E48437B6556980A702;
+			proxyType = 1;
+			remoteGlobalIDString = 4346F1D5A3562BF4C4BF9D95;
+			remoteInfo = "AutoFill-macOS";
+		};
+		D759D69357F1AD5A5ADB5BDF = {
+			isa = "PBXTargetDependency";
+			target = 4346F1D5A3562BF4C4BF9D95;
+			targetProxy = DC5214B1B68A5FB1162F407B;
+		};
+		FE7A49DD17F0305422F661DA = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "Proximus Passwords";
+				PRODUCT_MODULE_NAME = "ProximusPasswords";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).mac";
+				INFOPLIST_FILE = "Config/ProximusPasswords-macOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/ProximusPasswords-macOS.entitlements";
+				SDKROOT = "macosx";
+				SUPPORTED_PLATFORMS = "macosx";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
+				DEBUG_INFORMATION_FORMAT = "dwarf";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "NO";
+				APPLICATION_EXTENSION_API_ONLY = "NO";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+			};
+			name = "Debug";
+		};
+		2152EBA7C64D21BDEAF550B2 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "Proximus Passwords";
+				PRODUCT_MODULE_NAME = "ProximusPasswords";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).mac";
+				INFOPLIST_FILE = "Config/ProximusPasswords-macOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/ProximusPasswords-macOS.entitlements";
+				SDKROOT = "macosx";
+				SUPPORTED_PLATFORMS = "macosx";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "NO";
+				APPLICATION_EXTENSION_API_ONLY = "NO";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon";
+			};
+			name = "Release";
+		};
+		3B682AF6895803C9E1E82401 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (FE7A49DD17F0305422F661DA, 2152EBA7C64D21BDEAF550B2,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		777776B8C72BA7B2666263DD = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = 3B682AF6895803C9E1E82401;
+			buildPhases = (560CADB23F6D84E5932FB97C, 912C11229F3332C8F6328C06, 18DFC5F28C560E3A7C63BF73, CCE1574796F5EC9B5AABD3F3,);
+			buildRules = ();
+			dependencies = (D759D69357F1AD5A5ADB5BDF,);
+			name = "ProximusPasswords-macOS";
+			packageProductDependencies = (1CC50F86AFD091FAF84DF8D7,);
+			productName = "ProximusPasswords-macOS";
+			productReference = 899B8B6E423387D6BD482AC3;
+			productType = "com.apple.product-type.application";
+		};
+		550BDCCB0F09BB93089C88BE = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.app-extension";
+			path = "ProximusAutoFill.appex";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		BA03CA5F2272A7BCC99164EF = {
+			isa = "XCSwiftPackageProductDependency";
+			package = BC4A71180870F7945155FBB0;
+			productName = "ProximusKit";
+		};
+		ABA5EA69CE6C0E39C2804746 = {
+			isa = "PBXBuildFile";
+			productRef = BA03CA5F2272A7BCC99164EF;
+		};
+		D52D6922748701DE1665F6C1 = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (ABA5EA69CE6C0E39C2804746,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE7D75DA79E80DE43E35CB18 = {
+			isa = "PBXBuildFile";
+			fileRef = 30A78C9A7E828045EF9BFFA6;
+		};
+		BB28FFB62E0E6A54888247A1 = {
+			isa = "PBXBuildFile";
+			fileRef = 8268F546DF5E423F9A0106E9;
+		};
+		26683CF17A76DD255C1587F5 = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (DE7D75DA79E80DE43E35CB18, BB28FFB62E0E6A54888247A1,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CE2241FD23F1AE1B958619D = {
+			isa = "PBXBuildFile";
+			fileRef = 435AD77D2B314FD4E42E1D6B;
+		};
+		3363B25EEA5EC98CCABDBB65 = {
+			isa = "PBXBuildFile";
+			fileRef = F9199AAD467EFBE0875AAD15;
+		};
+		B139CEFF163214848FE5D32F = {
+			isa = "PBXBuildFile";
+			fileRef = D2A0516F04FFE60A704D78F2;
+		};
+		7088BC4BBB32D035C0BDB1E7 = {
+			isa = "PBXBuildFile";
+			fileRef = 8D5BA17279E0E105E8C8A161;
+		};
+		FC0C64855E7C80A45F4A4490 = {
+			isa = "PBXBuildFile";
+			fileRef = 6AE41E537B085339EA258DDA;
+		};
+		0EF781B007DD3619FD7A1A06 = {
+			isa = "PBXBuildFile";
+			fileRef = 6D2E5714560CB3D4DD7C46F0;
+		};
+		A3534846F64188EE770A0E6A = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (4CE2241FD23F1AE1B958619D, 3363B25EEA5EC98CCABDBB65, B139CEFF163214848FE5D32F, 7088BC4BBB32D035C0BDB1E7, FC0C64855E7C80A45F4A4490, 0EF781B007DD3619FD7A1A06,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		936028D462ABD471BB4A8770 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "ProximusAutoFill";
+				PRODUCT_MODULE_NAME = "ProximusAutoFill";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).ios.autofill";
+				INFOPLIST_FILE = "Config/AutoFill-iOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/AutoFill-iOS.entitlements";
+				SDKROOT = "iphoneos";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
+				DEBUG_INFORMATION_FORMAT = "dwarf";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "YES";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTS_MACCATALYST = "NO";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "NO";
+			};
+			name = "Debug";
+		};
+		4E44FA4EF15BE9E8EB588C18 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "ProximusAutoFill";
+				PRODUCT_MODULE_NAME = "ProximusAutoFill";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).ios.autofill";
+				INFOPLIST_FILE = "Config/AutoFill-iOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/AutoFill-iOS.entitlements";
+				SDKROOT = "iphoneos";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "YES";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTS_MACCATALYST = "NO";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "NO";
+			};
+			name = "Release";
+		};
+		783A237331D935F927F70CF2 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (936028D462ABD471BB4A8770, 4E44FA4EF15BE9E8EB588C18,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		5B199DAC1B10D2DB96BAE5EA = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = 783A237331D935F927F70CF2;
+			buildPhases = (26683CF17A76DD255C1587F5, D52D6922748701DE1665F6C1, A3534846F64188EE770A0E6A,);
+			buildRules = ();
+			dependencies = ();
+			name = "AutoFill-iOS";
+			packageProductDependencies = (BA03CA5F2272A7BCC99164EF,);
+			productName = "AutoFill-iOS";
+			productReference = 550BDCCB0F09BB93089C88BE;
+			productType = "com.apple.product-type.app-extension";
+		};
+		E89E744127E0ED811AC6F5A8 = {
+			isa = "PBXFileReference";
+			explicitFileType = "wrapper.application";
+			path = "Proximus Passwords.app";
+			sourceTree = "BUILT_PRODUCTS_DIR";
+		};
+		40AF2EE7EF1D30A2C4BFC7E9 = {
+			isa = "XCSwiftPackageProductDependency";
+			package = BC4A71180870F7945155FBB0;
+			productName = "ProximusKit";
+		};
+		7C70C60B01C8943400CA31D8 = {
+			isa = "PBXBuildFile";
+			productRef = 40AF2EE7EF1D30A2C4BFC7E9;
+		};
+		529E3AB4E90FADBD9824D815 = {
+			isa = "PBXFrameworksBuildPhase";
+			buildActionMask = 2147483647;
+			files = (7C70C60B01C8943400CA31D8,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AF542345A283FDB534DCA6AE = {
+			isa = "PBXBuildFile";
+			fileRef = 8268F546DF5E423F9A0106E9;
+		};
+		CDC452B8A0D97DC985AF6FC1 = {
+			isa = "PBXBuildFile";
+			fileRef = A37103305BA47FF833640B2F;
+		};
+		23D75518062E2A47705773A0 = {
+			isa = "PBXBuildFile";
+			fileRef = 6E6B8ECEC2C1CF3090A74FF0;
+		};
+		83931282B0FDE32325680BDE = {
+			isa = "PBXBuildFile";
+			fileRef = 1C688EF783233AC13A4E1900;
+		};
+		7FBE94652E2F595D4E9F67DA = {
+			isa = "PBXBuildFile";
+			fileRef = DF9A76354797464DC57C1D59;
+		};
+		1A41ACDE98712D145CBEDAAE = {
+			isa = "PBXBuildFile";
+			fileRef = 84D1714E6D2E628AB2F9AFE2;
+		};
+		EED800ACBB49B07986E5F493 = {
+			isa = "PBXBuildFile";
+			fileRef = E6E49770F56D380597D45BBC;
+		};
+		2F38E46629B3B57ACF136815 = {
+			isa = "PBXBuildFile";
+			fileRef = 70359F311BC22671C0A79F54;
+		};
+		3ABDF915999EACD8A07D56B5 = {
+			isa = "PBXSourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (AF542345A283FDB534DCA6AE, CDC452B8A0D97DC985AF6FC1, 23D75518062E2A47705773A0, 83931282B0FDE32325680BDE, 7FBE94652E2F595D4E9F67DA, 1A41ACDE98712D145CBEDAAE, EED800ACBB49B07986E5F493, 2F38E46629B3B57ACF136815,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9976BB2E9CAADDB9842F70F0 = {
+			isa = "PBXBuildFile";
+			fileRef = 435AD77D2B314FD4E42E1D6B;
+		};
+		E5C3A3BF8C2CB147D54F414C = {
+			isa = "PBXBuildFile";
+			fileRef = F9199AAD467EFBE0875AAD15;
+		};
+		12FB37E6EC215EB880D6AAFF = {
+			isa = "PBXBuildFile";
+			fileRef = D2A0516F04FFE60A704D78F2;
+		};
+		4195F84DCA8B0C62B0B6F63A = {
+			isa = "PBXBuildFile";
+			fileRef = 8D5BA17279E0E105E8C8A161;
+		};
+		04C0C755543534BE574282B2 = {
+			isa = "PBXBuildFile";
+			fileRef = 6AE41E537B085339EA258DDA;
+		};
+		3539CA69B4B3915209E7A8D7 = {
+			isa = "PBXBuildFile";
+			fileRef = 4211CD2D91113764716BB9E8;
+		};
+		EA412D0077A3A5619212E8CD = {
+			isa = "PBXBuildFile";
+			fileRef = 9F09A9A979B3F1220B6041DC;
+		};
+		3C0D0A9E36281BAD8C4B4AED = {
+			isa = "PBXBuildFile";
+			fileRef = B8E90729D23966701E3A52E0;
+		};
+		A2E766E9861E3A3AEA21663F = {
+			isa = "PBXBuildFile";
+			fileRef = F3014FC883AFCF50CB9408C0;
+		};
+		DE62BDC4ADF678C7AD543DB1 = {
+			isa = "PBXBuildFile";
+			fileRef = 065F05F84A4AD7E122C33893;
+		};
+		74A9F7232884F64881D89288 = {
+			isa = "PBXBuildFile";
+			fileRef = 98D30CDD8BEBC5B6F18C6C84;
+		};
+		90ACBEA91FB8D4C4734C2613 = {
+			isa = "PBXBuildFile";
+			fileRef = AAD5FA474B534753B6060099;
+		};
+		922442D89F3DD0A2B4DAC038 = {
+			isa = "PBXBuildFile";
+			fileRef = 7D34277DF083009AC3750617;
+		};
+		F4882FE3FCCAB9FF29B9BC2C = {
+			isa = "PBXBuildFile";
+			fileRef = E08B684124F676F4E3519FC7;
+		};
+		382CF6E643C379D27A62C5C1 = {
+			isa = "PBXBuildFile";
+			fileRef = F3500FAF5682066C3757A042;
+		};
+		C6095611BAFC6ACB66B153AD = {
+			isa = "PBXBuildFile";
+			fileRef = AA5AB1DBEFD4131FEED6236D;
+		};
+		49C9919953E5007C01626132 = {
+			isa = "PBXBuildFile";
+			fileRef = 6D2E5714560CB3D4DD7C46F0;
+		};
+		FFA1F44BBB63034DDAFCBF59 = {
+			isa = "PBXResourcesBuildPhase";
+			buildActionMask = 2147483647;
+			files = (9976BB2E9CAADDB9842F70F0, E5C3A3BF8C2CB147D54F414C, 12FB37E6EC215EB880D6AAFF, 4195F84DCA8B0C62B0B6F63A, 04C0C755543534BE574282B2, 3539CA69B4B3915209E7A8D7, EA412D0077A3A5619212E8CD, 3C0D0A9E36281BAD8C4B4AED, A2E766E9861E3A3AEA21663F, DE62BDC4ADF678C7AD543DB1, 74A9F7232884F64881D89288, 90ACBEA91FB8D4C4734C2613, 922442D89F3DD0A2B4DAC038, F4882FE3FCCAB9FF29B9BC2C, 382CF6E643C379D27A62C5C1, C6095611BAFC6ACB66B153AD, 49C9919953E5007C01626132,);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EB11B84AB1BC1894ED1D296B = {
+			isa = "PBXBuildFile";
+			fileRef = 550BDCCB0F09BB93089C88BE;
+			settings = {
+				ATTRIBUTES = ("RemoveHeadersOnCopy",);
+			};
+		};
+		42AA5F7A5CD7FF65B5B24D19 = {
+			isa = "PBXCopyFilesBuildPhase";
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (EB11B84AB1BC1894ED1D296B,);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5D61B4CF55CBDFAF02A6A1C1 = {
+			isa = "PBXContainerItemProxy";
+			containerPortal = 244210E48437B6556980A702;
+			proxyType = 1;
+			remoteGlobalIDString = 5B199DAC1B10D2DB96BAE5EA;
+			remoteInfo = "AutoFill-iOS";
+		};
+		6094D1C36442625F28C142DE = {
+			isa = "PBXTargetDependency";
+			target = 5B199DAC1B10D2DB96BAE5EA;
+			targetProxy = 5D61B4CF55CBDFAF02A6A1C1;
+		};
+		762B28E4F8408F4814028E83 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "Proximus Passwords";
+				PRODUCT_MODULE_NAME = "ProximusPasswords";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).ios";
+				INFOPLIST_FILE = "Config/ProximusPasswords-iOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/ProximusPasswords-iOS.entitlements";
+				SDKROOT = "iphoneos";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
+				DEBUG_INFORMATION_FORMAT = "dwarf";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "NO";
+				APPLICATION_EXTENSION_API_ONLY = "NO";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTS_MACCATALYST = "NO";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "NO";
+			};
+			name = "Debug";
+		};
+		7F0BD732BCBF98FF0B29FD96 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+				PRODUCT_NAME = "Proximus Passwords";
+				PRODUCT_MODULE_NAME = "ProximusPasswords";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PROXIMUS_BUNDLE_PREFIX).ios";
+				INFOPLIST_FILE = "Config/ProximusPasswords-iOS-Info.plist";
+				CODE_SIGN_ENTITLEMENTS = "Config/ProximusPasswords-iOS.entitlements";
+				SDKROOT = "iphoneos";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ONLY_ACTIVE_ARCH = "YES";
+				ARCHS = "arm64";
+				SKIP_INSTALL = "NO";
+				APPLICATION_EXTENSION_API_ONLY = "NO";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SUPPORTS_MACCATALYST = "NO";
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = "NO";
+			};
+			name = "Release";
+		};
+		B73E20C771578FD686C21B79 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (762B28E4F8408F4814028E83, 7F0BD732BCBF98FF0B29FD96,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		264E7990A41835E1AE74F4F0 = {
+			isa = "PBXNativeTarget";
+			buildConfigurationList = B73E20C771578FD686C21B79;
+			buildPhases = (3ABDF915999EACD8A07D56B5, 529E3AB4E90FADBD9824D815, FFA1F44BBB63034DDAFCBF59, 42AA5F7A5CD7FF65B5B24D19,);
+			buildRules = ();
+			dependencies = (6094D1C36442625F28C142DE,);
+			name = "ProximusPasswords-iOS";
+			packageProductDependencies = (40AF2EE7EF1D30A2C4BFC7E9,);
+			productName = "ProximusPasswords-iOS";
+			productReference = E89E744127E0ED811AC6F5A8;
+			productType = "com.apple.product-type.application";
+		};
+		0A3E27B8CA818264D75C8D81 = {
+			isa = "PBXGroup";
+			children = (27EC99E8C73065BDE2590C7C, 899B8B6E423387D6BD482AC3, 550BDCCB0F09BB93089C88BE, E89E744127E0ED811AC6F5A8,);
+			name = "Products";
+			sourceTree = "<group>";
+		};
+		19F479106CE8C3BA8C106518 = {
+			isa = "PBXGroup";
+			children = (8268F546DF5E423F9A0106E9, A37103305BA47FF833640B2F, 6E6B8ECEC2C1CF3090A74FF0, 1C688EF783233AC13A4E1900, DF9A76354797464DC57C1D59, 84D1714E6D2E628AB2F9AFE2, E6E49770F56D380597D45BBC, 70359F311BC22671C0A79F54, 30A78C9A7E828045EF9BFFA6, 4211CD2D91113764716BB9E8, 9F09A9A979B3F1220B6041DC, B8E90729D23966701E3A52E0, F3014FC883AFCF50CB9408C0, 065F05F84A4AD7E122C33893, 98D30CDD8BEBC5B6F18C6C84, AAD5FA474B534753B6060099, 7D34277DF083009AC3750617, E08B684124F676F4E3519FC7, F3500FAF5682066C3757A042, AA5AB1DBEFD4131FEED6236D, 435AD77D2B314FD4E42E1D6B, F9199AAD467EFBE0875AAD15, D2A0516F04FFE60A704D78F2, 8D5BA17279E0E105E8C8A161, 6AE41E537B085339EA258DDA, F9A6F80A177F0B51A8BE8F80, 6D2E5714560CB3D4DD7C46F0, 8E0205CD89BF271E3726B26F, 0A3E27B8CA818264D75C8D81,);
+			sourceTree = "<group>";
+		};
+		5DF0EAF287A59303D4EFEAF3 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+			};
+			name = "Debug";
+		};
+		C62D9534737287C44FD6EF43 = {
+			isa = "XCBuildConfiguration";
+			baseConfigurationReference = 8E0205CD89BF271E3726B26F;
+			buildSettings = {
+			};
+			name = "Release";
+		};
+		7ED5184A5487DF185E3420D0 = {
+			isa = "XCConfigurationList";
+			buildConfigurations = (5DF0EAF287A59303D4EFEAF3, C62D9534737287C44FD6EF43,);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release";
+		};
+		244210E48437B6556980A702 = {
+			isa = "PBXProject";
+			attributes = {
+				LastUpgradeCheck = "1610";
+				BuildIndependentTargetsInParallel = "YES";
+				TargetAttributes = {
+					4346F1D5A3562BF4C4BF9D95 = {
+						CreatedOnToolsVersion = "16.1";
+					};
+					777776B8C72BA7B2666263DD = {
+						CreatedOnToolsVersion = "16.1";
+					};
+					5B199DAC1B10D2DB96BAE5EA = {
+						CreatedOnToolsVersion = "16.1";
+					};
+					264E7990A41835E1AE74F4F0 = {
+						CreatedOnToolsVersion = "16.1";
+					};
+				};
+			};
+			buildConfigurationList = 7ED5184A5487DF185E3420D0;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "en";
+			hasScannedForEncodings = 0;
+			knownRegions = ("en", "Base",);
+			mainGroup = 19F479106CE8C3BA8C106518;
+			packageReferences = (BC4A71180870F7945155FBB0,);
+			productRefGroup = 0A3E27B8CA818264D75C8D81;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (4346F1D5A3562BF4C4BF9D95, 777776B8C72BA7B2666263DD, 5B199DAC1B10D2DB96BAE5EA, 264E7990A41835E1AE74F4F0,);
+		};
+	};
+	rootObject = 244210E48437B6556980A702;
+}

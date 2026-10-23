@@ -1,0 +1,17 @@
+services:
+  relay:
+    build: ./services
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    environment:
+      PROXIMUS_ENROLLMENT_KEY: ${PROXIMUS_ENROLLMENT_KEY:?Set a random enrollment key in .env}
+      PROXIMUS_DATA: /data/relay
+    ports: ["127.0.0.1:8088:8088"]
+    volumes: ["relay-data:/data"]
+volumes:
+  relay-data:
