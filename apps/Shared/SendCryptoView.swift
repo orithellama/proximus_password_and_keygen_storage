@@ -22,21 +22,24 @@ struct SendCryptoView: View {
     @State private var work: Task<Void, Never>?
     var body: some View {
         NavigationStack {
-            Form {
+            ProximusForm {
+                ProximusSection {
+                    StepIndicator(labels: ["Recipient", "Review", "Submitted"], current: receipt != nil ? 2 : transfer != nil ? 1 : 0)
+                }
                 if let receipt {
-                    Section("Transfer record") { TransferReceiptView(receipt: receipt, wallet: wallet) }
-                    Section { Button("Create another transfer") { confirmAnother = true } }
+                    ProximusSection("Transfer status") { TransferReceiptView(receipt: receipt, wallet: wallet) }
+                    ProximusSection { Button("Create another transfer") { confirmAnother = true } }
                 } else if let transfer {
-                    Section("Review transfer") { TransferReviewFields(plan: transfer.plan) }
+                    ProximusSection("Review transfer") { TransferReviewFields(plan: transfer.plan) }
                     if let peer {
-                        Section("Approval from " + peer.name) {
+                        ProximusSection("Approval from " + peer.name) {
                             if let approval {
                                 Label("Approval verified for this transfer", systemImage: "checkmark.shield.fill").foregroundStyle(Theme.accent)
                                 Text(approval.deviceID.uuidString).font(.caption).foregroundStyle(.secondary)
                             } else {
                                 if let requestCode { TransferCodeOutput(code: requestCode, filename: "Proximus-transfer-request.txt") }
                                 else { Button("Create approval request") { requestApproval(transfer.plan) } }
-                                Text("On your other device, open Device approvals → Review a transfer. Return its approval here. Both devices must already trust each other’s fingerprints.").font(.caption).foregroundStyle(.secondary)
+                                Text("On your other device, open My devices → Extra protection for crypto transfers → Set up device approvals, then review this transfer. Bring its approval back here. Both devices must already trust each other’s fingerprints.").font(.caption).foregroundStyle(.secondary)
                                 TransferCodeInput(title: "Returned approval") { code in
                                     let response = try TransferApproval.decode(code)
                                     try response.validate(plan: transfer.plan, peer: peer)
@@ -45,16 +48,16 @@ struct SendCryptoView: View {
                             }
                         }
                     }
-                    Section {
+                    ProximusSection {
                         Toggle("I checked the chain, full recipient address, amount, and fee", isOn: $checked)
-                        Button("Authenticate & send " + transfer.plan.chain.amount(transfer.plan.amount)) { send(transfer) }
-                            .buttonStyle(.borderedProminent).disabled(!checked || (peer != nil && approval == nil))
+                        Button("Confirm & send " + transfer.plan.chain.amount(transfer.plan.amount)) { send(transfer) }
+                            .buttonStyle(ProximusButtonStyle(.primary)).disabled(!checked || (peer != nil && approval == nil))
                         Button("Edit transfer") { clearReview() }
                         Text("This sends a real blockchain transaction. Submission is not confirmation. Proximus will retain its transaction ID if the node times out.").font(.caption).foregroundStyle(.secondary)
                     }
                 } else {
-                    Section("Native coin transfer") {
-                        Label(wallet.network.coinLabel, systemImage: "wallet.bifold")
+                    ProximusSection("Where should it go?") {
+                        Label(wallet.network.coinLabel, systemImage: "network")
                         TextField("Recipient address", text: $recipient)
                             .autocorrectionDisabled()
                             #if os(iOS)
@@ -64,14 +67,22 @@ struct SendCryptoView: View {
                         Button("Scan recipient address") { scanning = true }
                         #endif
                         TextField("Amount", text: $amount)
+                            #if os(iOS)
+                            .keyboardType(.decimalPad)
+                            #endif
                         if let balance = session.walletBalances[wallet.id] { LabeledContent("Last available balance", value: balance.chain.amount(balance.available)) }
-                        Button(wallet.network == .monero ? "Prepare with local companion" : "Review transfer") { prepare() }.disabled(recipient.isEmpty || amount.isEmpty)
+                        Button("Review transfer") { prepare() }.buttonStyle(ProximusButtonStyle(.primary)).disabled(recipient.isEmpty || amount.isEmpty)
+                        Text("You’ll check the network, amount, address, and fee before anything is sent.").font(.callout).foregroundStyle(Theme.muted)
                         if wallet.network == .monero { Text("The local Mac companion must already have this wallet loaded and synced. Preparing signs inside the companion with relay disabled; final review and device approval control broadcasting.").font(.caption).foregroundStyle(.secondary) }
                         Text("Supports native coins. Tokens, contract calls, integrated Monero payment IDs, and send-max are not supported.").font(.caption).foregroundStyle(.secondary)
                     }
+                    ProximusSection("Connection") {
+                        NavigationLink("Network settings") { RPCSettingsView(network: wallet.network).onDisappear { session.clearWalletBalances() } }
+                        Text("Set up your wallet’s network connection first. Sending requires internet.").font(.caption).foregroundStyle(Theme.muted)
+                    }
                 }
                 if busy { ProgressView(transfer == nil ? "Preparing transfer…" : "Authenticating / checking the network…") }
-            }.formStyle(.grouped).navigationTitle("Send crypto")
+            }.appForm().navigationTitle("Send crypto")
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button(receipt == nil ? "Cancel" : "Done") { dismiss() }.disabled(busy) } }
         }.frame(idealWidth: 640, idealHeight: 780).privacySensitive().disabled(busy).errorAlert($error).interactiveDismissDisabled(busy)
             .onAppear { do { receipt = try TransferReceipt.load(wallet: wallet.id) } catch { self.error = ErrorMessage(error) } }
@@ -83,7 +94,7 @@ struct SendCryptoView: View {
             } message: { Text("An unknown or pending transaction may still confirm. A new transfer could pay the recipient twice.") }
             #if os(iOS)
             .sheet(isPresented: $scanning) { NavigationStack {
-                QRScanner(onCode: { value in recipient = value; scanning = false }, onError: { value in scanning = false; error = ErrorMessage(ProximusError.invalid(value)) })
+                QRScanner(requiredPrefix: nil, onCode: { value in recipient = value; scanning = false }, onError: { value in scanning = false; error = ErrorMessage(ProximusError.invalid(value)) })
                     .navigationTitle("Scan recipient address").toolbar { Button("Cancel") { scanning = false } }
             } }
             #endif
@@ -91,7 +102,7 @@ struct SendCryptoView: View {
     private func clearReview() { transfer = nil; client = nil; requestCode = nil; approval = nil; checked = false; peer = nil }
     private func run(_ operation: @escaping () async throws -> Void) { busy = true; work = Task { do { try await operation() } catch { if !Task.isCancelled { self.error = ErrorMessage(error) } }; busy = false } }
     private func prepare() { run {
-        guard let configuration = try RPCConfiguration.load(wallet.network) else { throw ProximusError.unavailable("Add your node in RPC settings first.") }
+        guard let configuration = try RPCConfiguration.load(wallet.network) else { throw ProximusError.unavailable("Open Network settings and add a connection for this wallet, then try again.") }
         let rpc = try WalletRPCClient(configuration: configuration)
         let prepared = try await session.prepareTransfer(wallet: wallet, client: rpc, recipient: recipient, amount: amount)
         try Task.checkCancellation()
@@ -121,7 +132,7 @@ struct TransferReceiptView: View {
             Text("To: " + receipt.recipient).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
             Text(receipt.date.formatted()).font(.caption).foregroundStyle(.secondary)
             HStack {
-                Button("Copy transaction ID") { Platform.copyPublic(receipt.transactionID) }
+                CopyValueButton(value: receipt.transactionID, title: "Copy transaction ID")
                 Button("Check confirmation") { refresh() }.disabled(busy)
                 if busy { ProgressView().controlSize(.small) }
             }

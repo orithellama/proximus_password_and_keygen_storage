@@ -5,11 +5,11 @@ import ProximusKit
     init() { Theme.registerFonts() }
     var body: some Scene {
         WindowGroup {
-            #if DEBUG && os(macOS)
-            if ProcessInfo.processInfo.arguments.contains("--capture-preview") { PreviewCaptureView().tint(Theme.accent).font(Theme.body()) }
-            else { BootstrapView().tint(Theme.accent).font(Theme.body()) }
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--capture-preview") { PreviewCaptureView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle()) }
+            else { BootstrapView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle()) }
             #else
-            BootstrapView().tint(Theme.accent).font(Theme.body())
+            BootstrapView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle())
             #endif
         }
         #if os(macOS)
@@ -26,18 +26,21 @@ struct BootstrapView: View {
         Group {
             if let session { RootView(session: session) }
             else if let error {
-                VStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 20) {
                     Image(systemName: "lock.trianglebadge.exclamationmark").font(.system(size: 44)).foregroundStyle(Theme.accent)
-                    Text("Finish device setup").font(.largeTitle.bold())
-                    Text(error).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    Text("Open ProximusPasswords.xcodeproj, select your signing team for the app and AutoFill extension, then build again. Both targets need the same App Group and Keychain group.").font(.callout).foregroundStyle(.secondary)
-                }.padding(36).frame(maxWidth: 620)
+                    SectionHeading(title: "Let’s get your vault open.", subtitle: "Proximus couldn’t access its storage on this device. Unlock your device, then try again.")
+                    Button("Try again") { load() }.buttonStyle(ProximusButtonStyle(.primary))
+                    DisclosureGroup("Technical details") { Text(error).font(.callout).foregroundStyle(Theme.muted).textSelection(.enabled) }
+                }.padding(32).frame(maxWidth: 560)
             } else { ProgressView("Opening Proximus…") }
         }
-        .task {
-            do { session = try VaultSession(repository: AppEnvironment.repository(), deviceID: AppEnvironment.deviceID()) }
-            catch { self.error = error.localizedDescription }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.background)
+        .task { load() }
+    }
+    private func load() {
+        error = nil
+        do { session = try VaultSession(repository: AppEnvironment.repository(), deviceID: AppEnvironment.deviceID()) }
+        catch { self.error = error.localizedDescription }
     }
 }
 

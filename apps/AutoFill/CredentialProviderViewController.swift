@@ -97,20 +97,20 @@ private struct ProviderView: View {
                         Text("Create or pair a vault in the Proximus app first.")
                     } else if !session.isUnlocked {
                         Text("Unlock to approve this request.")
-                        if let state = session.state, HardwareUnlock.isEnabled(state.header.vaultID) { Button("Unlock with this device") { run { try await session.unlockWithDevice() } }.buttonStyle(ProximusPrimaryButton()) }
-                        SecureField("Master passphrase", text: $passphrase).textFieldStyle(.roundedBorder)
-                        SecureField("Recovery key, if needed", text: $recovery).textFieldStyle(.roundedBorder)
+                        if let state = session.state, HardwareUnlock.isEnabled(state.header.vaultID) { Button("Unlock with this device") { run { try await session.unlockWithDevice() } }.buttonStyle(ProximusButtonStyle(.primary)) }
+                        SecureField("Master passphrase", text: $passphrase).textFieldStyle(ProximusTextFieldStyle())
+                        SecureField("Recovery key, if needed", text: $recovery).textFieldStyle(ProximusTextFieldStyle())
                         Button("Unlock with passphrase") { run { try await session.unlock(passphrase: passphrase, recovery: recovery); passphrase = ""; recovery = "" } }
                     } else if configuration {
                         Text("Use Proximus for passwords and hardware-bound passkeys. Suggestions expose usernames and domains to the system credential index, never passwords.")
-                        Button("Enable suggestions and finish") { run { try await session.setIndexEnabled(true); session.lock(); context.completeExtensionConfigurationRequest() } }.buttonStyle(ProximusPrimaryButton())
+                        Button("Enable suggestions and finish") { run { try await session.setIndexEnabled(true); session.lock(); context.completeExtensionConfigurationRequest() } }.buttonStyle(ProximusButtonStyle(.primary))
                         Button("Finish without suggestions") { session.lock(); context.completeExtensionConfigurationRequest() }
                     } else if let request = registration, let identity = request.credentialIdentity as? ASPasskeyCredentialIdentity {
                         Text("Create a passkey").font(.title.bold())
                         Text(identity.relyingPartyIdentifier).font(.headline).textSelection(.enabled)
                         Text(identity.userName)
                         Text("This private key will stay in this device’s Secure Enclave. Register another passkey or recovery method on the website before relying on this one.").foregroundStyle(.secondary)
-                        Button("Create passkey on this device") { register(request, identity: identity) }.buttonStyle(ProximusPrimaryButton())
+                        Button("Create passkey on this device") { register(request, identity: identity) }.buttonStyle(ProximusButtonStyle(.primary))
                     } else {
                         Text(assertion == nil ? "Choose a password" : "Sign in with a passkey").font(.title.bold())
                         Text(assertion?.relyingParty ?? destinations.joined(separator: ", ")).font(.headline).textSelection(.enabled)
@@ -118,7 +118,7 @@ private struct ProviderView: View {
                         ForEach(items) { item in
                             Button {
                                 if let assertion { sign(item, request: assertion) } else { pendingPassword = item; notice = true }
-                            } label: { HStack { Image(systemName: item.kind.symbol); VStack(alignment: .leading) { Text(item.title).font(.headline); Text(item.username).font(.caption) }; Spacer(); Image(systemName: "chevron.right") }.padding() }.buttonStyle(.bordered)
+                            } label: { HStack { Image(systemName: item.kind.symbol); VStack(alignment: .leading) { Text(item.title).font(.headline); Text(item.username).font(.caption) }; Spacer(); Image(systemName: "chevron.right") }.padding() }.buttonStyle(ProximusButtonStyle())
                         }
                         if assertion != nil { Text("A passkey proves control of your key. It does not guarantee that the website or device is safe.").font(.caption).foregroundStyle(.secondary) }
                     }
@@ -126,7 +126,7 @@ private struct ProviderView: View {
                     if !error.isEmpty { Text(error).foregroundStyle(.red).font(.callout) }
                 }.padding(24)
             }.toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: cancel) } }
-        }.tint(Theme.accent).font(Theme.body()).background(Theme.background).privacySensitive()
+        }.tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).textFieldStyle(ProximusTextFieldStyle()).background(Theme.background).privacySensitive()
             .alert("Password sign-in", isPresented: $notice) {
                 Button("Cancel", role: .cancel) { pendingPassword = nil }
                 Button("Use password") {

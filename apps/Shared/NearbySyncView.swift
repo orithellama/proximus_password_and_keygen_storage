@@ -13,18 +13,19 @@ struct NearbySyncView: View {
             VStack(alignment: .leading, spacing: 22) {
                 Image(systemName: "antenna.radiowaves.left.and.right").font(.system(size: 38)).foregroundStyle(Theme.accent)
                 Text("Sync with a nearby device").font(Theme.heading(26))
-                Text("Unlock this vault on both devices and open Nearby sync on each. Keep Wi-Fi on and both apps open. No router, internet connection, or server is required.").foregroundStyle(.secondary)
+                Text("1. Unlock Proximus on your other device.\n2. Open My devices → Sync nearby there too.\n3. Keep both apps open until sync finishes.").lineSpacing(6)
+                Text("Keep Wi-Fi on. You don’t need internet or the same Wi-Fi network.").font(.callout).foregroundStyle(Theme.muted)
                 if !nearby.complete && nearby.failure == nil { ProgressView() }
                 Text(nearby.status).font(Theme.body().weight(.medium))
                 if let failure = nearby.failure { Text(failure).foregroundStyle(.secondary) }
                 if session.conflictingHead != nil {
-                    Button("Review conflict: keep both versions") { merge = true }.buttonStyle(ProximusPrimaryButton())
+                    Button("Review conflict: keep both versions") { merge = true }.buttonStyle(ProximusButtonStyle(.primary))
                 }
-                if nearby.complete || nearby.failure != nil { Button("Sync again") { start() }.buttonStyle(.bordered) }
+                if nearby.complete || nearby.failure != nil { Button("Sync again") { start() }.buttonStyle(ProximusButtonStyle()) }
                 Spacer()
-                Text("Only devices that already have this vault can authenticate. To add a new device, use Pair a device first.").font(.caption).foregroundStyle(.secondary)
+                Text("Only devices that already have this vault can authenticate. To add a new device, use My devices → Add a device first.").font(.caption).foregroundStyle(.secondary)
             }.padding(28).background(Theme.background)
-                .navigationTitle("Nearby sync")
+                .navigationTitle("Sync nearby")
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { nearby.cancel(); dismiss() } } }
         }.frame(idealWidth: 520, idealHeight: 470).errorAlert($error)
             .task { start() }

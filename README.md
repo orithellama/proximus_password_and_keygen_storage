@@ -26,6 +26,19 @@ The interface uses the original Proximus wings, Sora headings, Space Grotesk bod
 
 Screenshots on the product page are captured from the native Mac app with sample data.
 
+## Start using Proximus
+
+1. Choose **Get started**, name your vault, and set a unique vault password.
+2. Save the recovery key separately from that password. Proximus cannot reset either one.
+3. Enable device unlock and, optionally, an encrypted iCloud backup.
+4. Choose **Add → Password** to save a login. Open it to copy the username or password, or open its website.
+
+Use **Favorites** for everyday accounts and **Folders** to organize the rest. **My devices** brings together adding a device, nearby sync, and optional crypto transfer approvals. In **Settings**, find **Unlock & AutoFill**, **Backup & recovery**, password import, and connection settings.
+
+For a wallet, **Receive** shows the public address and QR code. **Send** walks through recipient, amount, review, and submission. Configure its connection in **Network settings** before refreshing balances or sending. Technical details and recovery keys stay behind their own actions.
+
+On Mac, a system Keychain dialog asks for the Mac login password, which is separate from the vault password. A rebuilt local app may need permission again. Unlock prompts are handled by the operating system.
+
 ## Install Proximus
 
 Official downloads are listed at [proximus.sh/proximus-app](https://www.proximus.sh/proximus-app). The Mac download becomes available after a Developer ID signed, notarized release is published and its exact SHA-256 checksum is pinned on the website. Local test packages are not offered through that download.
@@ -172,15 +185,15 @@ Creating a vault creates a local vault identifier and encryption keys. It does n
 
 **Create a vault** generates a random 256-bit vault key and a separate 256-bit recovery key. The master passphrase has a minimum length of 12 UTF-8 bytes. **Generate from BIP-39** fills both passphrase fields with 24 English words generated from 256 random bits plus the BIP-39 checksum. Save this phrase separately from the recovery key and use it only for the vault. Wallet recovery phrases are generated independently. The recovery key and master passphrase together unlock an encrypted backup.
 
-The recovery key can be remembered in the device’s local Keychain. **Use Face ID or Touch ID to unlock** during profile creation, or **Settings → Enable device unlock**, adds a Secure Enclave protected unlock path. Subsequent unlocks can use Face ID or Touch ID on supported hardware. Device owner authentication can also accept the device passcode or password. Biometric data is handled by the operating system and is not sent to Proximus. Device unlock does not replace the recovery credentials needed on a new device.
+The recovery key can be remembered in the device’s local Keychain. **Use Face ID or Touch ID to unlock** during profile creation, or **Settings → Unlock & AutoFill**, adds a Secure Enclave protected unlock path. Subsequent unlocks can use Face ID or Touch ID on supported hardware. Device owner authentication can also accept the device passcode or password. Biometric data is handled by the operating system and is not sent to Proximus. Device unlock does not replace the recovery credentials needed on a new device.
 
-**Settings → Import passwords from CSV** accepts UTF-8 exports with `name` or `title`, `url` or `website`, `username`, `password`, and optional `notes` columns. Chrome, Safari, and password-only Bitwarden aliases are supported. Imports add validated records without replacing existing items. OTP secrets are rejected rather than discarded.
+**Settings → Import passwords** accepts UTF-8 exports with `name` or `title`, `url` or `website`, `username`, `password`, and optional `notes` columns. Chrome, Safari, and password-only Bitwarden aliases are supported. Imports add validated records without replacing existing items. OTP secrets are rejected rather than discarded.
 
-**Settings → Export encrypted backup** writes a `.proximusvault` file. **Restore an encrypted backup** restores that file on a device without an existing vault, using the master passphrase and recovery key. Hardware-bound passkey private keys and device-local wallet secrets are excluded from vault backups.
+**Settings → Export a standard vault backup** writes a `.proximusvault` file. **Restore a standard vault backup** restores that file on a device without an existing vault, using the master passphrase and recovery key. Hardware-bound passkey private keys and device-local wallet secrets are excluded from vault backups.
 
 ### Encrypted iCloud recovery kits
 
-During profile creation, enable **Automatically save an encrypted recovery kit**, or open **Settings → iCloud & recovery**. Choose a folder through Files or Finder. Select a folder in iCloud Drive to use the signed-in Apple account, or a local folder for local storage. Proximus does not create an Apple account or an online Proximus account.
+During profile creation, enable **Set up iCloud backup now**, or open **Settings → Backup & recovery**. Choose a folder through Files or Finder. Select a folder in iCloud Drive to use the signed-in Apple account, or a local folder for local storage. Proximus does not create an Apple account or an online Proximus account.
 
 Use a separate backup password of 16–1024 UTF-8 bytes and save it outside the vault. The kit is encrypted on the device with AES-256-GCM. Its key uses Argon2id v19 with 64 MiB, 3 iterations, 1 lane, and a random 16-byte salt. The backup password is not stored. A device-bound Secure Enclave wrapper protects the derived key between sessions.
 
@@ -192,7 +205,7 @@ Use a separate backup password of 16–1024 UTF-8 bytes and save it outside the 
 
 Hardware passkey private keys are never exported. Wallets whose keys exist only on other devices contribute public metadata to this device's kit. Monero kits contain the spend and view keys, not a word mnemonic. RPC endpoints and authentication credentials are excluded.
 
-While the vault and backup session are unlocked, edits automatically update the encrypted kit. Device authentication resumes backup access after unlocking. Canceling that prompt pauses backup. **Resume backup / back up now** includes local wallets created while backup was paused. The sidebar and Settings show failed writes or missing wallet keys. A successful save means the encrypted file was written to the chosen folder, not that iCloud finished uploading. iCloud needs connectivity to upload. Proximus does not run backups while the vault is locked.
+While the vault and backup session are unlocked, edits automatically update the encrypted kit. Device authentication resumes backup access after unlocking. Canceling that prompt pauses backup. **Back up now** includes local wallets created while backup was paused. Backup & recovery shows failed writes or missing wallet keys. A successful save means the encrypted file was written to the chosen folder, not that iCloud finished uploading. iCloud needs connectivity to upload. Proximus does not run backups while the vault is locked.
 
 **Restore an iCloud recovery kit** opens a selected kit on a device without a vault. Enter its backup password, choose a new master passphrase, and save the new vault recovery key. Restoration creates a new vault identifier and stores recovered wallet keys under this device's protection. Re-pair devices and configure a backup folder after restoration. No plaintext recovery file is downloaded or exported automatically.
 
@@ -219,7 +232,7 @@ Proximus displays native-coin balances and sends reviewed transfers through conf
 
 ### Balances and sending
 
-Open a wallet, choose **RPC settings**, save your node, then select **Refresh balance**. The wallet list and details show the chain and its native symbol. Balances include their refresh time and remain in memory until the vault locks. No third-party balance service or default public RPC is selected automatically.
+Open a wallet, choose **Network settings**, save your node, then select **Refresh balance**. The wallet list and details show the chain and its native symbol. Balances include their refresh time and remain in memory until the vault locks. No third-party balance service or default public RPC is selected automatically.
 
 | Network | Balance and sending | Requirements |
 | --- | --- | --- |
@@ -240,7 +253,7 @@ The sender must be the device holding this wallet's keys. A paired address-only 
 
 ### Custom RPC nodes
 
-Open **Settings → Custom RPC nodes**, or **RPC settings** inside a wallet. Endpoints and credentials stay in this device's Keychain and are excluded from recovery kits. Remote nodes require HTTPS. HTTP is accepted only for loopback addresses; Monero wallet companions require literal `127.0.0.1` or `[::1]` and RPC authentication. Redirects are rejected. Connection-check responses are capped at 256 KiB; transaction RPC responses at 2 MiB.
+Open **Settings → Wallet networks**, or **Network settings** inside a wallet. Endpoints and credentials stay in this device's Keychain and are excluded from recovery kits. Remote nodes require HTTPS. HTTP is accepted only for loopback addresses; Monero wallet companions require literal `127.0.0.1` or `[::1]` and RPC authentication. Redirects are rejected. Connection-check responses are capped at 256 KiB; transaction RPC responses at 2 MiB.
 
 Connection checks use `getGenesisHash` (Solana), `eth_chainId` (EVM), `getblockchaininfo` (Bitcoin), and `get_info` (Monero daemon) or `get_version` (Monero wallet companion). They do not send wallet addresses or private keys. Refreshing a balance discloses the public address to the configured node. Sending submits the reviewed signed transaction. A node's chain, balance, and confirmation responses are claims from that node, not independent chain verification.
 
@@ -251,7 +264,7 @@ For Monero on Mac:
 1. Install the official Monero CLI tools and verify their download using the [Monero download instructions](https://www.getmonero.org/downloads/).
 2. Open or manually restore the matching wallet in Monero software. Its primary address must match the Proximus address. Use the separately saved spend/view keys and restore height when needed; Proximus never transfers them automatically.
 3. Run `monero-wallet-rpc` on loopback with RPC authentication and the matching wallet loaded. Let it scan through the current chain height. The companion maintains its own wallet files and key protection, separate from Proximus.
-4. In Proximus **RPC settings → Monero**, enable **Local wallet companion**, enter `http://127.0.0.1:18082/json_rpc` (or your configured local port), and enter its RPC username/password. HTTP Digest authentication is supported.
+4. In Proximus **Network settings → Monero**, enable **Local wallet companion**, enter `http://127.0.0.1:18082/json_rpc` (or your configured local port), and enter its RPC username/password. HTTP Digest authentication is supported.
 
 Preparing XMR asks the companion to construct and sign with `do_not_relay: true`. Proximus then shows its returned amount and fee, binds the prepared metadata digest and transaction ID into any paired approval, and calls `relay_tx` only after final device authorization. The prepared metadata stays on the sending Mac; approval files contain its digest, not the signed payload. Proximus trusts the local companion for Monero transaction construction and does not independently decode its confidential outputs. A watch-only companion cannot sign, and the companion's own interfaces can operate outside Proximus's approval policy. [Monero wallet RPC](https://docs.getmonero.org/rpc-library/wallet-rpc/), [wallet companion configuration](https://docs.getmonero.org/interacting/monero-wallet-rpc-reference/)
 
@@ -260,10 +273,10 @@ Exchanging addresses and approval codes with someone nearby can happen offline, 
 ### Paired-device transfer approval
 
 1. Pair and sync the vault so both devices have the same wallet's public record.
-2. Open **Device approvals** on both devices and show each device's approval code.
+2. Open **My devices → Extra protection for crypto transfers → Set up device approvals** on both devices and show each device's approval code.
 3. Import the other device's code on each side. Compare the full fingerprint on the actual device screens before choosing **Trust this device**.
-4. On the wallet's original device, open **Device approval**, select the trusted approver, and save. Changing or disabling the requirement needs device authentication.
-5. Prepare a transfer and choose **Create approval request**. On the other device, choose **Device approvals → Review a transfer**, import or scan the request, check all details, and authenticate.
+4. On the wallet's original device, open **Security & transfer approvals**, select the trusted approver, and save. Changing or disabling the requirement needs device authentication.
+5. Prepare a transfer and choose **Create approval request**. On the other device, choose **My devices → Extra protection for crypto transfers → Set up device approvals → Review a transfer from another device**, import or scan the request, check all details, and authenticate.
 6. Return its approval code to the sender, then authenticate and send. Large Bitcoin requests use exported files/AirDrop because full input transactions may not fit a QR code.
 
 Each device uses an independent Secure Enclave P-256 approval identity, separate from the shared vault encryption key. Requests and responses use different signature domains. The signature binds the vault, wallet, source device, unique review identifier, chain, recipient, exact amount, fee, transaction construction data, and expiry. The approver reconstructs Solana/EVM/Bitcoin unsigned bytes from the review. A changed, expired, wrongly signed, or already submitted review is rejected. Fingerprints, wallet approval policies, and the latest transfer record are local device data and are not synced or included in recovery kits. Configure trust and policies again after recovery on another device.
@@ -273,7 +286,7 @@ This is **app-enforced paired-device approval**, not blockchain multisig. The ch
 ## Pair a device
 
 1. Install Proximus on both devices.
-2. Unlock the source vault and choose **Pair a device**.
+2. Unlock the source vault and choose **My devices → Add a device**.
 3. On the new device, choose **Pair with another device**.
 4. Scan the QR code or paste the pairing link.
 5. Compare the six-digit code on both screens.
@@ -283,7 +296,7 @@ Pairing uses Network.framework with peer-to-peer Wi-Fi enabled. Devices can conn
 
 ### Nearby sync after pairing
 
-Unlock the vault on both devices and open **Nearby sync** on each. The apps discover and authenticate each other and exchange encrypted changes automatically for that session. A new QR scan is not required. Discovery identifiers rotate for each session and do not contain vault identifiers or device names. Authentication requires possession of the existing vault key, and an ephemeral P-256 exchange derives fresh session encryption keys. Directional sequence numbers reject reordered or replayed records. Conflicting edits require an explicit keep-both merge.
+Unlock the vault on both devices and open **My devices → Sync nearby** on each. The apps discover and authenticate each other and exchange encrypted changes automatically for that session. A new QR scan is not required. Discovery identifiers rotate for each session and do not contain vault identifiers or device names. Authentication requires possession of the existing vault key, and an ephemeral P-256 exchange derives fresh session encryption keys. Directional sequence numbers reject reordered or replayed records. Conflicting edits require an explicit keep-both merge.
 
 Keep both apps open and Wi-Fi enabled. A shared Wi-Fi network and internet access are unnecessary. Nearby sync ends when its screen closes, the vault locks, or its two-minute window expires. Each session is limited to 64 MiB of message data. This transport uses Apple peer-to-peer Wi-Fi, not Bluetooth-only mesh networking. [Apple peer-to-peer networking](https://developer.apple.com/forums/thread/751839)
 
@@ -309,7 +322,7 @@ chmod 600 .env
 docker compose up --build -d
 ```
 
-The container listens on `127.0.0.1:8088`. Place an HTTPS reverse proxy in front of it using [Config/Caddyfile.example](Config/Caddyfile.example). In **Settings → Encrypted sync**, enter the HTTPS endpoint and enrollment key, then select **Connect relay**.
+The container listens on `127.0.0.1:8088`. Place an HTTPS reverse proxy in front of it using [Config/Caddyfile.example](Config/Caddyfile.example). In **Settings → Sync over the internet**, enter the HTTPS endpoint and enrollment key, then select **Connect server**.
 
 To run a native Go process:
 

@@ -1,6 +1,8 @@
-#if DEBUG && os(macOS)
+#if DEBUG
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 import ProximusKit
 
 struct PreviewCaptureView: View {
@@ -9,18 +11,23 @@ struct PreviewCaptureView: View {
     @State private var error = ""
     private let device = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
     private var detailScreen: Bool {
-        ["--wallet-screen", "--recovery-screen", "--generator-screen"].contains { ProcessInfo.processInfo.arguments.contains($0) }
+        ["--wallet-screen", "--recovery-screen", "--generator-screen", "--devices-screen", "--settings-screen", "--welcome-screen", "--unlock-screen"].contains { ProcessInfo.processInfo.arguments.contains($0) }
     }
     var body: some View {
         Group {
             if let session {
-                if ProcessInfo.processInfo.arguments.contains("--unlock-screen") { WelcomeView(session: session, pairingLink: .constant(nil)) }
+                if ProcessInfo.processInfo.arguments.contains("--unlock-screen") || ProcessInfo.processInfo.arguments.contains("--welcome-screen") { WelcomeView(session: session, pairingLink: .constant(nil)) }
                 else if ProcessInfo.processInfo.arguments.contains("--wallet-screen") { WalletCreator(session: session, created: { _ in }) }
                 else if ProcessInfo.processInfo.arguments.contains("--recovery-screen") { NavigationStack { RecoverySettingsView(session: session) } }
                 else if ProcessInfo.processInfo.arguments.contains("--generator-screen") { GeneratorView() }
+                else if ProcessInfo.processInfo.arguments.contains("--devices-screen") { DevicesView(session: session) }
+                else if ProcessInfo.processInfo.arguments.contains("--settings-screen") { SettingsView(session: session) }
                 else { VaultView(session: session, initialSelection: selection, initialCategory: ProcessInfo.processInfo.arguments.contains("--wallet-detail-screen") ? "wallet" : "all") }
             } else { Text(error.isEmpty ? "Rendering app preview…" : error) }
-        }.frame(minWidth: detailScreen ? 760 : 1180, minHeight: 760)
+        }
+            #if os(macOS)
+            .frame(minWidth: detailScreen ? 760 : 1180, minHeight: 760)
+            #endif
             .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("--dark") ? .dark : .light)
             .task {
                 do {
@@ -48,10 +55,14 @@ struct PreviewCaptureView: View {
                         }
                     }
                     let model = try VaultSession.visualFixture(contents: VaultContents(items: items, devices: [PairedDevice(id: device, name: "MacBook Pro")]), deviceID: device, sampleWalletBalances: true)
-                    selection = items[0].id
+                    selection = ProcessInfo.processInfo.arguments.contains("--home-screen") ? nil : items[0].id
                     if ProcessInfo.processInfo.arguments.contains("--unlock-screen") { model.lock() }
-                    session = model
+                    if ProcessInfo.processInfo.arguments.contains("--welcome-screen") {
+                        let empty = try VaultRepository(directory: model.repository.directory.appendingPathComponent("welcome"))
+                        session = try VaultSession(repository: empty, deviceID: device)
+                    } else { session = model }
                     try await Task.sleep(for: .seconds(2))
+                    #if os(macOS)
                     guard let path = ProcessInfo.processInfo.environment["PROXIMUS_PREVIEW_OUTPUT"] else { return }
                     guard let window = NSApplication.shared.windows.first(where: { $0.contentView != nil && $0.isVisible }), let view = window.contentView?.superview ?? window.contentView else { throw ProximusError.unavailable("Preview window is unavailable.") }
                     window.setContentSize(NSSize(width: detailScreen ? 820 : 1180, height: 800))
@@ -62,11 +73,15 @@ struct PreviewCaptureView: View {
                     view.cacheDisplay(in: view.bounds, to: bitmap)
                     guard let png = bitmap.representation(using: .png, properties: [:]) else { throw ProximusError.unavailable("Preview encoding failed.") }
                     try png.write(to: URL(fileURLWithPath: path))
-                    if let session { try? FileManager.default.removeItem(at: session.repository.directory) }
+                    try? FileManager.default.removeItem(at: model.repository.directory)
                     NSApplication.shared.terminate(nil)
+                    #endif
                 } catch {
                     self.error = error.localizedDescription
                     FileHandle.standardError.write(Data(("Preview failed: " + error.localizedDescription + "\n").utf8))
+                    #if os(macOS)
+                    if ProcessInfo.processInfo.environment["PROXIMUS_PREVIEW_OUTPUT"] != nil { NSApplication.shared.terminate(nil) }
+                    #endif
                 }
             }
     }

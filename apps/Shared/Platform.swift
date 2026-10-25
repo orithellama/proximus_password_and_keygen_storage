@@ -73,20 +73,22 @@ struct QRCodeView: View {
     }
     var body: some View {
         Group { if let qr { Image(decorative: qr, scale: 1).interpolation(.none).resizable().scaledToFit() } else { Text("QR code unavailable. Copy the pairing link.") } }
-            .padding(20).background(.white, in: RoundedRectangle(cornerRadius: 18)).frame(maxWidth: 300, maxHeight: 300)
+            .padding(20).background(.white, in: RoundedRectangle(cornerRadius: Theme.cornerRadius)).frame(maxWidth: 300, maxHeight: 300)
             .accessibilityLabel("Device pairing QR code")
     }
 }
 
 #if os(iOS)
 struct QRScanner: UIViewControllerRepresentable {
+    var requiredPrefix: String? = "proximus://pair?"
     var onCode: (String) -> Void
     var onError: (String) -> Void
-    func makeUIViewController(context: Context) -> ScannerController { let controller = ScannerController(); controller.onCode = onCode; controller.onError = onError; return controller }
+    func makeUIViewController(context: Context) -> ScannerController { let controller = ScannerController(); controller.requiredPrefix = requiredPrefix; controller.onCode = onCode; controller.onError = onError; return controller }
     func updateUIViewController(_ uiViewController: ScannerController, context: Context) {}
     static func dismantleUIViewController(_ uiViewController: ScannerController, coordinator: ()) { uiViewController.stop() }
 }
 final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
+    var requiredPrefix: String? = "proximus://pair?"
     var onCode: ((String) -> Void)?
     var onError: ((String) -> Void)?
     private let capture = AVCaptureSession()
@@ -117,7 +119,8 @@ final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsD
     override func viewDidLayoutSubviews() { super.viewDidLayoutSubviews(); preview?.frame = view.bounds }
     func stop() { queue.async { self.capture.stopRunning() } }
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        guard !delivered, let value = (metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue, value.hasPrefix("proximus://pair?") else { return }
+        guard !delivered, let value = (metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue,
+              !value.isEmpty, value.utf8.count <= 4096, requiredPrefix.map({ value.hasPrefix($0) }) ?? true else { return }
         delivered = true; stop(); onCode?(value)
     }
 }

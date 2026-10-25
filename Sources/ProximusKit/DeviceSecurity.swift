@@ -53,6 +53,17 @@ public enum DeviceKeychain {
         guard status == errSecSuccess else { throw failure(status) }
         return result as? Data
     }
+    /// Availability for interface hints only. Never retrieves a secret or authorizes access.
+    public static func contains(_ account: String) -> Bool {
+        var q = query(account)
+        q[kSecReturnAttributes as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        let auth = LAContext()
+        auth.interactionNotAllowed = true
+        q[kSecUseAuthenticationContext as String] = auth
+        var result: CFTypeRef?
+        return SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess
+    }
     public static func write(_ data: Data, account: String) throws {
         var attributes: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
         #if os(macOS)
@@ -109,7 +120,7 @@ public enum HardwareUnlock {
     public static var isAvailable: Bool { SecureEnclave.isAvailable }
     private static func account(_ vault: UUID) -> String { "hardware-unlock/" + vault.uuidString }
     private static func context(_ vault: UUID) -> Data { Data(("proximus/v1/device-unlock/" + vault.uuidString).utf8) }
-    public static func isEnabled(_ vault: UUID) -> Bool { (try? DeviceKeychain.read(account(vault))) != nil }
+    public static func isEnabled(_ vault: UUID) -> Bool { DeviceKeychain.contains(account(vault)) }
     public static func accessControl() throws -> SecAccessControl {
         var error: Unmanaged<CFError>?
         guard let control = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenUnlockedThisDeviceOnly, [.privateKeyUsage, .userPresence], &error) else {

@@ -8,9 +8,12 @@ import UIKit
 
 enum ProximusLinks {
     static let signUp = URL(string: "https://www.proximus.sh/sign-up")!
+    static let source = URL(string: "https://github.com/orithellama/proximus_password_and_keygen_storage")!
+    static let installation = URL(string: "https://github.com/orithellama/proximus_password_and_keygen_storage#install-proximus")!
 }
 
 enum Theme {
+    static let cornerRadius: CGFloat = 12
     static let mint = Color(red: 151/255, green: 252/255, blue: 228/255)
     static let ink = Color(red: 7/255, green: 39/255, blue: 35/255)
     static let accent = adaptive(light: 0x072723, dark: 0xA3EBD9)
@@ -19,8 +22,8 @@ enum Theme {
     static let sidebar = adaptive(light: 0xECF0F3, dark: 0x111716)
     static let border = adaptive(light: 0xD9DFE3, dark: 0x2C3534)
     static let foreground = adaptive(light: 0x1F2328, dark: 0xE6E6E6)
-    static let muted = adaptive(light: 0x6D7078, dark: 0x969696)
-    static func body(_ size: CGFloat = 14) -> Font { .custom("SpaceGroteskLight-Regular", size: size, relativeTo: .body) }
+    static let muted = adaptive(light: 0x626971, dark: 0xABB5B1)
+    static func body(_ size: CGFloat = 15) -> Font { .custom("SpaceGroteskLight-Regular", size: size, relativeTo: .body) }
     static func heading(_ size: CGFloat = 24) -> Font { .custom("Sora-Regular", size: size, relativeTo: .title).weight(.medium) }
     private static func adaptive(light: UInt32, dark: UInt32) -> Color {
         #if os(macOS)
@@ -68,14 +71,55 @@ struct Brand: View {
     }
 }
 
-struct ProximusPrimaryButton: ButtonStyle {
-    @Environment(\.colorScheme) private var scheme
+/// One control family for every app action; emphasis changes color, never geometry.
+struct ProximusButtonStyle: ButtonStyle {
+    enum Emphasis { case primary, secondary }
+    var emphasis: Emphasis = .secondary
+    init(_ emphasis: Emphasis = .secondary) { self.emphasis = emphasis }
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(Theme.body(13).weight(.medium)).padding(.horizontal, 14).padding(.vertical, 9)
-            .foregroundStyle(scheme == .dark ? Theme.ink : Theme.mint)
-            .background(Theme.accent.opacity(configuration.isPressed ? 0.86 : 1), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.12)))
-            .shadow(color: .black.opacity(0.12), radius: 4, x: 2, y: 3)
+        configuration.label
+            .modifier(ProximusControl(emphasis: emphasis, pressed: configuration.isPressed, destructive: configuration.role == .destructive))
+    }
+}
+
+struct ProximusControl: ViewModifier {
+    var emphasis: ProximusButtonStyle.Emphasis = .secondary
+    var pressed = false
+    var destructive = false
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var enabled
+    func body(content: Content) -> some View {
+        content.font(Theme.body(14).weight(.semibold)).multilineTextAlignment(.center)
+            .padding(.horizontal, 16).padding(.vertical, 11).frame(minHeight: 44)
+            .foregroundStyle(destructive ? Color.red : emphasis == .primary ? (scheme == .dark ? Theme.ink : Theme.mint) : Theme.accent)
+            .background(emphasis == .primary ? Theme.accent : Theme.accent.opacity(pressed ? 0.14 : 0.06), in: RoundedRectangle(cornerRadius: Theme.cornerRadius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius).strokeBorder(destructive ? Color.red.opacity(0.5) : emphasis == .primary ? Theme.accent : Theme.accent.opacity(0.3)))
+            .opacity(enabled ? (pressed ? 0.8 : 1) : 0.45)
+            .contentShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
+    }
+}
+
+struct ProximusTextFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration.textFieldStyle(.plain).padding(12).frame(minHeight: 44)
+            .background(Theme.background, in: RoundedRectangle(cornerRadius: Theme.cornerRadius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius).strokeBorder(Theme.border))
+    }
+}
+
+struct ProximusToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button { configuration.isOn.toggle() } label: {
+            HStack(spacing: 12) {
+                configuration.label.multilineTextAlignment(.leading).foregroundStyle(Theme.foreground)
+                Spacer(minLength: 8)
+                Image(systemName: configuration.isOn ? "checkmark" : "minus")
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(configuration.isOn ? Theme.ink : Theme.muted)
+                    .frame(width: 28, height: 28)
+                    .background(configuration.isOn ? Theme.mint : Theme.background, in: RoundedRectangle(cornerRadius: Theme.cornerRadius))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius).strokeBorder(Theme.border))
+            }.frame(minHeight: 44).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityValue(configuration.isOn ? "On" : "Off")
     }
 }
 

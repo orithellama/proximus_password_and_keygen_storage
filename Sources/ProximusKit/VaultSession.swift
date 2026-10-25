@@ -77,7 +77,9 @@ import Combine
     public func unlock(passphrase: String, recovery: String) async throws {
         let generation = lockGeneration
         let state = try repository.state()
-        let remembered = recovery.isEmpty ? try DeviceKeychain.read("recovery/" + state.header.vaultID.uuidString) : nil
+        let remembered = recovery.isEmpty ? try await Task.detached(priority: .userInitiated) {
+            try DeviceKeychain.read("recovery/" + state.header.vaultID.uuidString)
+        }.value : nil
         let secret = recovery.isEmpty ? remembered : try VaultCrypto.decodeRecovery(recovery)
         guard let secret else { throw ProximusError.invalid("Enter the recovery key from your kit for this device.") }
         let repository = repository

@@ -23,7 +23,7 @@ struct TransferCodeOutput: View {
             if code.utf8.count <= 1800 { QRCodeView(value: code).frame(width: 210, height: 210).accessibilityLabel("Proximus approval exchange QR code") }
             else { Text("This request is too large for a QR code. Export the file and send it to the other device with AirDrop, or copy its code.").font(.caption).foregroundStyle(.secondary) }
             HStack {
-                Button("Copy code") { Platform.copyPublic(code) }
+                CopyValueButton(value: code, title: "Copy code")
                 Button("Export file…") { exporting = true }
             }
             Text("Contains public transfer or device identity data, never recovery phrases or private keys.").font(.caption).foregroundStyle(.secondary)
@@ -40,7 +40,7 @@ struct TransferCodeInput: View {
     @State private var error: ErrorMessage?
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Paste " + title.lowercased(), text: $text).textFieldStyle(.roundedBorder)
+            TextField("Paste " + title.lowercased(), text: $text).textFieldStyle(ProximusTextFieldStyle())
             HStack {
                 Button("Open code") { accept(text) }.disabled(text.isEmpty || text.utf8.count > 3 * 1024 * 1024)
                 Button("Import file…") { importing = true }
@@ -59,7 +59,7 @@ struct TransferCodeInput: View {
         }.errorAlert($error)
         #if os(iOS)
         .sheet(isPresented: $scanning) { NavigationStack {
-            QRScanner(onCode: { value in scanning = false; accept(value) }, onError: { value in scanning = false; error = ErrorMessage(ProximusError.invalid(value)) })
+            QRScanner(requiredPrefix: "proximus-", onCode: { value in scanning = false; accept(value) }, onError: { value in scanning = false; error = ErrorMessage(ProximusError.invalid(value)) })
                 .navigationTitle(title).toolbar { Button("Cancel") { scanning = false } }
         } }
         #endif

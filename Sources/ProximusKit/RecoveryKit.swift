@@ -118,7 +118,7 @@ public actor RecoveryBackupSession {
         var url = root, values = URLResourceValues(); values.isExcludedFromBackup = true; try url.setResourceValues(values)
         return root.appendingPathComponent(id.uuidString + ".proximusrecovery")
     }
-    public static func isConfigured(_ vault: UUID) -> Bool { (try? DeviceKeychain.read(account(vault))) != nil }
+    public static func isConfigured(_ vault: UUID) -> Bool { DeviceKeychain.contains(account(vault)) }
     private init(vaultID: UUID, configuration: Configuration, key: Data, encryptedKit: Data) throws {
         self.vaultID = vaultID; self.configuration = configuration; self.key = try SecretBytes(key); self.encryptedKit = encryptedKit
     }
