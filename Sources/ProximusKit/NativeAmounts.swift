@@ -71,7 +71,7 @@ public struct WalletChain: Codable, Equatable, Sendable {
     public let name: String
     public let symbol: String
     public let decimals: Int
-    public var display: String { name + " · " + symbol }
+    public var display: String { name + " - " + symbol }
     public func amount(_ value: NativeAmount) -> String { value.formatted(decimals: decimals) + " " + symbol }
     static let solanaGenesis = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
     public static func resolve(_ network: WalletNetwork, identity: String) throws -> Self {
@@ -95,5 +95,5 @@ public struct WalletChain: Codable, Equatable, Sendable {
 }
 
 extension WalletNetwork {
-    public var coinLabel: String { switch self { case .solana: return "Solana · SOL"; case .evm: return "EVM · select chain in RPC settings"; case .bitcoin: return "Bitcoin · BTC"; case .monero: return "Monero · XMR" } }
+    public var coinLabel: String { switch self { case .solana: return "Solana - SOL"; case .evm: return "EVM - select chain in RPC settings"; case .bitcoin: return "Bitcoin - BTC"; case .monero: return "Monero - XMR" } }
 }

@@ -116,7 +116,7 @@ public struct WalletRPCClient: Sendable {
             total = available; detail = "Confirmed balance"
         case .evm:
             available = try NativeAmount.hex(await call("eth_getBalance", .array([.string(wallet.address), .string("pending")])).text)
-            total = available; detail = "Node balance including pending transactions · chain ID " + chain.identity
+            total = available; detail = "Node balance including pending transactions - chain ID " + chain.identity
         case .bitcoin:
             available = try await unspent(wallet).reduce(.zero) { try $0.adding($1["amount"].bitcoinAtoms()) }
             total = available; detail = "Confirmed safe outputs tracked by your Core wallet"
@@ -125,7 +125,7 @@ public struct WalletRPCClient: Sendable {
             guard let address = try result["per_subaddress"].values.first(where: { $0["address_index"] == .integer(0) }), try address["address"].text == wallet.address else { throw RPCValue.invalid }
             available = try address["unlocked_balance"].atoms; total = try address["balance"].atoms
             guard available <= total else { throw RPCValue.invalid }
-            detail = "Unlocked balance · local companion’s scanned wallet"
+            detail = "Unlocked balance - local companion’s scanned wallet"
         }
         return WalletBalance(chain: chain, available: available, total: total, checkedAt: Date(), detail: detail)
     }
@@ -264,7 +264,7 @@ public struct WalletRPCClient: Sendable {
             guard try value["txid"].text == receipt.transactionID else { throw RPCValue.invalid }
             let type = try value["type"].text
             if type == "failed" { return "Companion reports failure" }
-            if type == "out" { return "Confirmed · " + String(try value["confirmations"].uint) + " confirmations" }
+            if type == "out" { return "Confirmed - " + String(try value["confirmations"].uint) + " confirmations" }
             return "Pending confirmation"
         }
     }
