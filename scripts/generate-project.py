@@ -63,7 +63,7 @@ for platform in ["macOS", "iOS"]:
             "ProximusSourceDirty": "$(PROXIMUS_SOURCE_DIRTY)",
             "ASCredentialProviderExtensionCapabilities": capabilities,
             "ITSAppUsesNonExemptEncryption": True,
-            "NSFaceIDUsageDescription": "Use Face ID to unlock your vault, approve passkeys, and reveal wallet recovery details.",
+            "NSFaceIDUsageDescription": "Use Face ID to unlock your vault, reveal or copy saved credentials, approve passkeys, and reveal wallet recovery details.",
             "UIAppFonts": ["SpaceGrotesk.ttf", "Sora.ttf"],
         }
         if extension:

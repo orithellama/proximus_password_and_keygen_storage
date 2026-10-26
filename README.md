@@ -39,6 +39,16 @@ For a wallet, **Receive** shows the public address and QR code. **Send** walks t
 
 On Mac, a system Keychain dialog asks for the Mac login password, which is separate from the vault password. A rebuilt local app may need permission again. Unlock prompts are handled by the operating system.
 
+Email addresses in the item list, details, and AutoFill picker show only the first four characters with the rest masked. Choose **Show** to reveal the full address or a password. Revealing, copying credentials, and editing a saved item require fresh device authentication, or the vault password with its recovery key if that key is not saved on the device. Canceling authentication leaves the credentials hidden. Revealed values hide after 30 seconds, when switching items, or when the app loses focus. Copied credentials expire from the local clipboard after 30 seconds.
+
+### Signing in on a website
+
+In the local Mac source build, open the matching login in Proximus, choose **Copy username**, authenticate, and paste it into the website. Repeat with **Copy password**. Check the website address before pasting. This build excludes the unprovisioned Apple AutoFill extension, so Proximus does not appear automatically in browser password menus.
+
+The repository includes an Apple credential-provider extension for a correctly signed and provisioned build. Enable that build in the device's **AutoFill & Passwords** settings. A Chrome browser extension and native messaging bridge are not currently implemented.
+
+The vault can stay entirely on the device, with sync and iCloud backup turned off. Signing into a website still supplies that website with the chosen password. Device authentication controls access through the app, but cannot protect secrets from a compromised operating system or website.
+
 ## Install Proximus
 
 Official downloads are listed at [proximus.sh/proximus-app](https://www.proximus.sh/proximus-app). The Mac download becomes available after a Developer ID signed, notarized release is published and its exact SHA-256 checksum is pinned on the website. Local test packages are not offered through that download.

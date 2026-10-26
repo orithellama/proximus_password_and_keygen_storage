@@ -117,7 +117,7 @@ struct VaultView: View {
                                 Image(systemName: item.kind.symbol).font(.title3).foregroundStyle(Theme.accent).frame(width: 38, height: 42)
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(item.title).font(Theme.body(15).weight(.semibold)).lineLimit(1)
-                                    Text(item.wallet.map { session.walletBalances[$0.id]?.chain.display ?? $0.network.coinLabel } ?? (item.username.isEmpty ? item.kind.label : item.username)).font(Theme.body(13)).foregroundStyle(Theme.muted).lineLimit(1)
+                                    Text(item.wallet.map { session.walletBalances[$0.id]?.chain.display ?? $0.network.coinLabel } ?? (item.username.isEmpty ? item.kind.label : CredentialPrivacy.maskedEmail(item.username))).font(Theme.body(13)).foregroundStyle(Theme.muted).lineLimit(1)
                                     if let wallet = item.wallet, let balance = session.walletBalances[wallet.id] {
                                         Text(balance.chain.amount(balance.available)).font(Theme.body(13).weight(.medium)).foregroundStyle(Theme.accent)
                                     }
@@ -167,7 +167,7 @@ struct VaultView: View {
     }
     @ViewBuilder private var detailPane: some View {
         if let item = allItems.first(where: { $0.id == selected }) {
-            ItemDetail(session: session, item: item, edit: { editing = item })
+            ItemDetail(session: session, item: item, edit: { editing = item }).id(item.id)
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
@@ -192,7 +192,13 @@ struct ItemDetail: View {
     @ObservedObject var session: VaultSession
     let item: VaultItem
     var edit: () -> Void
-    @State private var reveal = false
+    @Environment(\.scenePhase) private var phase
+    @State private var revealedPassword: String?
+    @State private var revealedUsername: String?
+    @State private var revealID = UUID()
+    @State private var accessRequest: CredentialAccessRequest?
+    @State private var approvedAccess: (CredentialAccessGrant, CredentialAction)?
+    @State private var visible = false
     @State private var copyNotice = false
     @State private var copied = false
     @State private var deleteNotice = false
@@ -215,7 +221,7 @@ struct ItemDetail: View {
                         if !item.username.isEmpty { copyField("Username or email", value: item.username); Divider() }
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Password").font(Theme.body(13)).foregroundStyle(Theme.muted)
-                            Text(reveal ? item.password : "••••••••••••••••").font(.system(.body, design: .monospaced)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                            Text(phase == .active ? (revealedPassword ?? "••••••••••••••••") : "••••••••••••••••").font(.system(.body, design: .monospaced)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                             ViewThatFits(in: .horizontal) {
                                 HStack(spacing: 12) { passwordActions }
                                 VStack(alignment: .leading, spacing: 12) { passwordActions }
@@ -223,7 +229,9 @@ struct ItemDetail: View {
                         }
                         if !item.website.isEmpty { Divider(); websiteField }
                     }
-                    Text("Use AutoFill to match the website before signing in. No password manager can guarantee a website is safe.").font(Theme.body(13)).foregroundStyle(Theme.muted)
+                    Text(AppEnvironment.isStandaloneMac
+                         ? "Copy your username and password into the website to sign in. Check the website address before pasting."
+                         : "Use AutoFill to match the website before signing in. No password manager can guarantee a website is safe.").font(Theme.body(13)).foregroundStyle(Theme.muted)
                 } else if item.kind != .wallet {
                     if !item.username.isEmpty || !item.website.isEmpty {
                         AppCard { if !item.username.isEmpty { copyField("Username or email", value: item.username) }; if !item.website.isEmpty { websiteField } }
@@ -241,13 +249,31 @@ struct ItemDetail: View {
                 HStack { Text("Updated " + item.modifiedAt.formatted(date: .abbreviated, time: .omitted)); Spacer(); if !item.collection.isEmpty { Label(item.collection, systemImage: "folder") } }.font(Theme.body(12)).foregroundStyle(Theme.muted)
             }.padding(24).frame(maxWidth: 700, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
         }.background(Theme.background).navigationTitle(item.title).errorAlert($error)
-            .onChange(of: item.id) { _, _ in reveal = false; copied = false }
+            .onAppear { visible = true }
+            .onDisappear { visible = false; clearAccess() }
+            .onChange(of: item) { _, _ in clearAccess() }
+            .onChange(of: phase) { _, value in
+                if value != .active { hideCredentials() }
+                if value == .background { clearAccess() }
+            }
+            .task(id: revealID) {
+                guard revealedPassword != nil || revealedUsername != nil else { return }
+                try? await Task.sleep(for: .seconds(30))
+                if !Task.isCancelled { hideCredentials() }
+            }
             .task(id: copied) { if copied { try? await Task.sleep(for: .seconds(2)); if !Task.isCancelled { copied = false } } }
-            .alert("Copy password?", isPresented: $copyNotice) { Button("Cancel", role: .cancel) {}; Button("Copy for 30 seconds") { Platform.copySecret(item.password); copied = true } } message: { Text(DomainPolicy.passwordNotice(destination: nil)) }
+            .sheet(item: $accessRequest, onDismiss: completeAccess) { request in
+                CredentialAccessView(session: session, request: request) { authorized in
+                    guard visible, session.isUnlocked, phase != .background, accessRequest?.id == request.id, item == request.item else { return }
+                    approvedAccess = (authorized, request.action)
+                    accessRequest = nil
+                }
+            }
+            .alert("Copy password?", isPresented: $copyNotice) { Button("Cancel", role: .cancel) {}; Button("Copy for 30 seconds") { requestAccess(.copyPassword) } } message: { Text(DomainPolicy.passwordNotice(destination: nil)) }
             .confirmationDialog("Delete this item?", isPresented: $deleteNotice, titleVisibility: .visible) { Button("Delete", role: .destructive) { Task { do { try await session.delete(item) } catch { self.error = ErrorMessage(error) } } } } message: { Text(item.kind == .wallet ? "This deletes the address record and its private keys on this device. Save the wallet recovery details first. Standard vault backups cannot recover wallet keys. Older encrypted recovery kits may still contain them." : item.kind == .passkey ? "This removes the private key if it belongs to this device. Remove the corresponding passkey on the website too." : "This item will be removed from your vault. Older backups may still contain it.") }
     }
     @ViewBuilder private var itemActions: some View {
-        Button(action: edit) { Label("Edit", systemImage: "pencil") }.buttonStyle(ProximusButtonStyle())
+        Button { requestAccess(.edit) } label: { Label("Edit", systemImage: "pencil") }.buttonStyle(ProximusButtonStyle())
         Button {
             saving = true
             Task { do { var updated = item; updated.favorite.toggle(); try await session.save(updated) } catch { self.error = ErrorMessage(error) }; saving = false }
@@ -256,15 +282,47 @@ struct ItemDetail: View {
     }
     @ViewBuilder private var passwordActions: some View {
         Button { copyNotice = true } label: { Label(copied ? "Copied" : "Copy password", systemImage: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(ProximusButtonStyle(.primary))
-        Button { reveal.toggle() } label: { Label(reveal ? "Hide" : "Show", systemImage: reveal ? "eye.slash" : "eye") }.buttonStyle(ProximusButtonStyle())
+        Button { if revealedPassword != nil { revealedPassword = nil } else { requestAccess(.showPassword) } } label: { Label(revealedPassword != nil ? "Hide" : "Show", systemImage: revealedPassword != nil ? "eye.slash" : "eye") }.buttonStyle(ProximusButtonStyle())
     }
     private func copyField(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(Theme.body(13)).foregroundStyle(Theme.muted)
-            Text(value).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-            CopyValueButton(value: value, title: "Copy username").buttonStyle(ProximusButtonStyle())
+            Text(phase == .active ? (revealedUsername ?? CredentialPrivacy.maskedEmail(value)) : CredentialPrivacy.maskedEmail(value)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { usernameActions(value) }
+                VStack(alignment: .leading, spacing: 12) { usernameActions(value) }
+            }
         }
     }
+    @ViewBuilder private func usernameActions(_ value: String) -> some View {
+        Button { requestAccess(.copyUsername) } label: { Label("Copy username", systemImage: "doc.on.doc") }.buttonStyle(ProximusButtonStyle())
+        if CredentialPrivacy.maskedEmail(value) != value {
+            Button { if revealedUsername != nil { revealedUsername = nil } else { requestAccess(.showUsername) } } label: { Label(revealedUsername != nil ? "Hide" : "Show", systemImage: revealedUsername != nil ? "eye.slash" : "eye") }.buttonStyle(ProximusButtonStyle())
+        }
+    }
+    private func requestAccess(_ action: CredentialAction) {
+        guard session.isUnlocked, accessRequest == nil else { return }
+        hideCredentials(); approvedAccess = nil
+        accessRequest = CredentialAccessRequest(item: item, action: action)
+    }
+    private func completeAccess() {
+        guard let (grant, action) = approvedAccess else { return }
+        approvedAccess = nil
+        guard visible, phase != .background, session.isUnlocked else { return }
+        let authorized: VaultItem
+        do { authorized = try session.consumeCredentialAccess(grant) }
+        catch { self.error = ErrorMessage(error); return }
+        guard item == authorized else { return }
+        switch action {
+        case .showPassword: revealedPassword = authorized.password; revealID = UUID()
+        case .showUsername: revealedUsername = authorized.username; revealID = UUID()
+        case .copyPassword: Platform.copySecret(authorized.password); copied = true
+        case .copyUsername: Platform.copySecret(authorized.username)
+        case .edit: edit()
+        }
+    }
+    private func hideCredentials() { revealedPassword = nil; revealedUsername = nil }
+    private func clearAccess() { hideCredentials(); approvedAccess = nil; accessRequest = nil; copyNotice = false; copied = false }
     private var websiteField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Website").font(Theme.body(13)).foregroundStyle(Theme.muted)

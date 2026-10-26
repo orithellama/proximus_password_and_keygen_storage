@@ -118,7 +118,7 @@ private struct ProviderView: View {
                         ForEach(items) { item in
                             Button {
                                 if let assertion { sign(item, request: assertion) } else { pendingPassword = item; notice = true }
-                            } label: { HStack { Image(systemName: item.kind.symbol); VStack(alignment: .leading) { Text(item.title).font(.headline); Text(item.username).font(.caption) }; Spacer(); Image(systemName: "chevron.right") }.padding() }.buttonStyle(ProximusButtonStyle())
+                            } label: { HStack { Image(systemName: item.kind.symbol); VStack(alignment: .leading) { Text(item.title).font(.headline); Text(CredentialPrivacy.maskedEmail(item.username)).font(.caption) }; Spacer(); Image(systemName: "chevron.right") }.padding() }.buttonStyle(ProximusButtonStyle())
                         }
                         if assertion != nil { Text("A passkey proves control of your key. It does not guarantee that the website or device is safe.").font(.caption).foregroundStyle(.secondary) }
                     }

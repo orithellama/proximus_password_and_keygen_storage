@@ -21,10 +21,16 @@ import Combine
     private var lockGeneration: UInt64 = 0
     private var transferringWallets = Set<UUID>()
     private let preferences: UserDefaults
+    private let authenticateCredentialAccess: @MainActor (String) async throws -> Void
+    private var pendingCredentialGrant: UUID?
     public var isUnlocked: Bool { contents != nil && key != nil }
     public var hasVault: Bool { repository.exists }
-    public init(repository: VaultRepository, deviceID: UUID) throws {
+    public convenience init(repository: VaultRepository, deviceID: UUID) throws {
+        try self.init(repository: repository, deviceID: deviceID, authenticateCredentialAccess: DeviceOwnerAuthentication.authenticate)
+    }
+    init(repository: VaultRepository, deviceID: UUID, authenticateCredentialAccess: @escaping @MainActor (String) async throws -> Void) throws {
         self.repository = repository; self.deviceID = deviceID
+        self.authenticateCredentialAccess = authenticateCredentialAccess
         preferences = AppEnvironment.isStandaloneMac ? .standard : (AppEnvironment.appGroup.flatMap { UserDefaults(suiteName: $0) } ?? .standard)
         indexEnabled = preferences.bool(forKey: "credential-index-enabled")
         if repository.exists { state = try repository.state() }
@@ -121,6 +127,7 @@ import Combine
         }
     }
     public func lock() {
+        pendingCredentialGrant = nil
         walletBalances.removeAll()
         lockGeneration &+= 1
         recoveryEpoch &+= 1
@@ -166,6 +173,48 @@ import Combine
         let material = try await Task.detached(priority: .userInitiated) { try LocalWalletStore(deviceID: device).reveal(metadata) }.value
         guard isUnlocked, generation == lockGeneration else { throw ProximusError.locked }
         touch(); return material
+    }
+    /// A fresh authorization for one explicit reveal, copy, or edit. Never cached across actions or unlock sessions.
+    public func authorizeCredentialAccess(_ item: VaultItem, reason: String, using authorization: CredentialAuthorization = .device) async throws -> CredentialAccessGrant {
+        pendingCredentialGrant = nil
+        guard isUnlocked, let header = state?.header, let key else { throw ProximusError.locked }
+        guard contents?.items.contains(item) == true else { throw ProximusError.conflict }
+        let generation = lockGeneration
+        try Task.checkCancellation()
+        switch authorization {
+        case .device:
+            try await authenticateCredentialAccess(reason)
+        case .vaultPassword(let password, let recoveryKey):
+            let expectedKeyDigest = key.withData { VaultCrypto.digest($0) }
+            let valid = try await Task.detached(priority: .userInitiated) {
+                let remembered = recoveryKey.isEmpty ? try DeviceKeychain.read("recovery/" + header.vaultID.uuidString) : nil
+                guard var recovery = recoveryKey.isEmpty ? remembered : try VaultCrypto.decodeRecovery(recoveryKey) else {
+                    throw ProximusError.invalid("Enter your recovery key as well. It is not saved on this device.")
+                }
+                defer { recovery.resetBytes(in: 0..<recovery.count) }
+                var wrapping = try VaultCrypto.derive(passphrase: password, recovery: recovery, salt: header.salt)
+                defer { wrapping.resetBytes(in: 0..<wrapping.count) }
+                var candidate = try VaultCrypto.open(header.wrappedKey, key: wrapping, context: header.context)
+                defer { candidate.resetBytes(in: 0..<candidate.count) }
+                return VaultCrypto.digest(candidate) == expectedKeyDigest
+            }.value
+            guard valid else { throw ProximusError.authentication }
+        }
+        try Task.checkCancellation()
+        try requireGeneration(generation)
+        guard state?.header == header, contents?.items.contains(item) == true else { throw ProximusError.conflict }
+        touch()
+        let grant = CredentialAccessGrant(id: UUID(), generation: generation, item: item, expires: Date().addingTimeInterval(30))
+        pendingCredentialGrant = grant.id
+        return grant
+    }
+    /// Consume once, immediately before the view reveals, copies, or opens the editor.
+    public func consumeCredentialAccess(_ grant: CredentialAccessGrant) throws -> VaultItem {
+        defer { pendingCredentialGrant = nil }
+        try requireGeneration(grant.generation)
+        guard pendingCredentialGrant == grant.id, grant.expires > Date() else { throw ProximusError.authentication }
+        guard contents?.items.contains(grant.item) == true else { throw ProximusError.conflict }
+        return grant.item
     }
     public func delete(_ item: VaultItem) async throws {
         guard var contents else { throw ProximusError.locked }
