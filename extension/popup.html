@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proximus</title><link rel="stylesheet" href="popup.css"><script type="module" src="popup.js"></script>
+</head>
+<body>
+  <header><span class="mark" aria-hidden="true"></span><div><h1>PROXIMUS</h1><p>Your private vault</p></div><span class="local">On this Mac</span></header>
+  <main>
+    <section class="website"><span class="eyebrow">CURRENT WEBSITE</span><strong id="origin">Checking website…</strong><p>Only this website receives the login you approve.</p></section>
+    <button class="primary" id="fill" disabled><span>Fill saved login</span><span aria-hidden="true">↗</span></button>
+    <button id="save" disabled><span>Save this login</span><span aria-hidden="true">+</span></button>
+    <p class="hint">Enter your login on the page, then save it to Proximus.</p>
+    <section class="generator"><div><h2>Need a new password?</h2><p>24 random characters, created on your Mac.</p></div><button id="generate" disabled>Generate and fill</button></section>
+    <div class="status" role="status" aria-live="polite"><span id="status">Opening Proximus…</span><button id="cancel" hidden>Cancel request</button></div>
+    <details><summary>First time using Proximus?</summary><p>Install the Mac app, then run <code>./install --browser</code> from its source folder. Unlock your vault in the Proximus window when you fill or save a login.</p><p>Check the full website address before approving. Proximus cannot guarantee a website’s safety.</p><a href="https://github.com/orithellama/proximus_password_and_keygen_storage/tree/main/extension#installation" target="_blank" rel="noopener noreferrer">Installation guide</a></details>
+  </main>
+  <footer><span>Free and open source</span><a href="https://www.proximus.sh/sign-up" target="_blank" rel="noopener noreferrer">Explore Proximus ↗</a></footer>
+</body>
+</html>

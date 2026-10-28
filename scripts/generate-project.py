@@ -2,11 +2,15 @@
 """Deterministic Xcode project generation with no third-party build dependency."""
 from pathlib import Path
 import hashlib
+import base64
 import json
 import plistlib
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
+extension_key = json.loads((ROOT / "extension/manifest.json").read_text())["key"]
+extension_digest = hashlib.sha256(base64.b64decode(extension_key)).hexdigest()[:32]
+extension_id = "".join(chr(ord("a") + int(c, 16)) for c in extension_digest)
 PROJECT = ROOT / "ProximusPasswords.xcodeproj"
 PROJECT.mkdir(exist_ok=True)
 objects = {}
@@ -75,7 +79,7 @@ for platform in ["macOS", "iOS"]:
                 info["CFBundleIcons"] = {"CFBundlePrimaryIcon":{"CFBundleIconFiles":["AppIcon60x60"],"UIPrerenderedIcon":False}}
                 info["CFBundleIcons~ipad"] = {"CFBundlePrimaryIcon":{"CFBundleIconFiles":["AppIcon60x60","AppIcon76x76","AppIcon83.5x83.5"],"UIPrerenderedIcon":False}}
             else:
-                info.update({"NSPrincipalClass":"NSApplication", "LSApplicationCategoryType":"public.app-category.productivity"})
+                info.update({"NSPrincipalClass":"NSApplication", "LSApplicationCategoryType":"public.app-category.productivity", "ProximusBrowserProtocol":1, "ProximusBrowserExtensionID":extension_id})
         plistpath = "Config/"+name+"-Info.plist"
         (ROOT/plistpath).write_bytes(plistlib.dumps(info, sort_keys=True))
         entitlements = {"com.apple.security.application-groups":["$(PROXIMUS_APP_GROUP)"],"keychain-access-groups":["$(PROXIMUS_KEYCHAIN_GROUP)"],"com.apple.developer.authentication-services.autofill-credential-provider":True}

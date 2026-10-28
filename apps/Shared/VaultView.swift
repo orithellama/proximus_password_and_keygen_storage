@@ -230,7 +230,7 @@ struct ItemDetail: View {
                         if !item.website.isEmpty { Divider(); websiteField }
                     }
                     Text(AppEnvironment.isStandaloneMac
-                         ? "Copy your username and password into the website to sign in. Check the website address before pasting."
+                         ? "In Chrome, open the Proximus extension and choose Fill saved login. You can also copy your login below. Check the website address before approving."
                          : "Use AutoFill to match the website before signing in. No password manager can guarantee a website is safe.").font(Theme.body(13)).foregroundStyle(Theme.muted)
                 } else if item.kind != .wallet {
                     if !item.username.isEmpty || !item.website.isEmpty {

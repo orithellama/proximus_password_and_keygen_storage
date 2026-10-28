@@ -5,6 +5,21 @@ on:
 permissions:
   contents: read
 jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          check-latest: true
+          package-manager-cache: false
+      - name: Browser permission, form, and authorization regression tests
+        run: node --test extension/tests/*.test.js
+      - name: Check browser installer
+        run: python3 -m unittest discover -s extension/tests -p 'test_*.py'
   apple:
     runs-on: macos-15
     steps:

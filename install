@@ -4,9 +4,11 @@ cd "$(dirname "$0")"
 case "${1:-}" in
     '') exec bash scripts/install-mac.sh ;;
     --phone) shift; exec python3 scripts/install-phone.py "$@" ;;
+    --browser) shift; exec python3 extension/install.py "$@" ;;
     --help|-h)
         echo 'Usage: ./install                     Build, install, and open the Mac app.'
         echo '       ./install --phone             Build, install, and open the iPhone/iPad app.'
+        echo '       ./install --browser           Connect the installed Mac app to Chrome.'
         echo '       ./install --phone --help      Phone signing and device options.' ;;
     *) echo 'Unknown option. Run ./install --help.' >&2; exit 2 ;;
 esac

@@ -13,6 +13,7 @@ Free, open-source app for passwords, passkeys, and wallet keys for Mac, iPhone, 
 - Chain labels, native-coin balances, reviewed transfers, and optional paired-device approval
 - Local Monero wallet companion support on Mac
 - Password AutoFill with exact HTTPS origin matching
+- Chrome extension for local, approved login filling, saving, updating, and password generation
 - Secure Enclave passkeys and device unlock
 - Local profile creation with Face ID / Touch ID unlock
 - Optional encrypted iCloud recovery kits including local wallet phrases
@@ -43,9 +44,11 @@ Email addresses in the item list, details, and AutoFill picker show only the fir
 
 ### Signing in on a website
 
-In the local Mac source build, open the matching login in Proximus, choose **Copy username**, authenticate, and paste it into the website. Repeat with **Copy password**. Check the website address before pasting. This build excludes the unprovisioned Apple AutoFill extension, so Proximus does not appear automatically in browser password menus.
+In Chrome on Mac, use the [Proximus extension](extension/README.md). Click its toolbar button and choose **Fill saved login**, unlock the Proximus approval window, check the website address, choose an account, and approve. The login is filled into that page without using the clipboard or submitting the form. **Save this login** adds or updates an account after review; **Generate and fill** creates a new password on your Mac.
 
-The repository includes an Apple credential-provider extension for a correctly signed and provisioned build. Enable that build in the device's **AutoFill & Passwords** settings. A Chrome browser extension and native messaging bridge are not currently implemented.
+The Chrome extension works with the local Mac source build. Run `./install` to update the app and register its browser connection, then load the `extension` folder using **Load unpacked** in `chrome://extensions` and pin Proximus. If the current app is already installed, use `./install --browser` to register the connection. See the [installation and usage guide](extension/README.md#installation).
+
+For Safari and Apple AutoFill, the repository also includes an Apple credential-provider extension for a correctly signed and provisioned build. Enable that build in the device's **AutoFill & Passwords** settings. The standalone local Mac build excludes the unprovisioned Apple extension. You can also use the app's authenticated **Copy username** and **Copy password** controls to paste a login yourself.
 
 The vault can stay entirely on the device, with sync and iCloud backup turned off. Signing into a website still supplies that website with the chosen password. Device authentication controls access through the app, but cannot protect secrets from a compromised operating system or website.
 
@@ -93,7 +96,7 @@ The app uses SwiftUI, AuthenticationServices, CryptoKit, Keychain, LocalAuthenti
 
 Install Xcode 16.1 or later and [Rust](https://rustup.rs), then open Xcode once to complete its setup. Clone this repository, open its folder in Finder, and double-click **[Install Proximus.command](Install%20Proximus.command)**.
 
-The installer builds the app, verifies its local code signature, installs it at `~/Applications/Proximus.app`, and opens it. The first build downloads dependencies. No Apple Developer account or Proximus account is required for this local Mac installation. Existing vault data is preserved on updates, and the previous app bundle is retained for rollback. Build output is recorded in `build/install-mac.log`.
+The installer builds the app, verifies its local code signature, installs it at `~/Applications/Proximus.app`, registers its local Chrome connection, and opens it. The first build downloads dependencies. No Apple Developer account or Proximus account is required for this local Mac installation. Existing vault data is preserved on updates, and the previous app bundle is retained for rollback. Build output is recorded in `build/install-mac.log`.
 
 The same installation is available from Terminal:
 
@@ -101,7 +104,7 @@ The same installation is available from Terminal:
 ./install
 ```
 
-Browser AutoFill and passkey-provider integration require the signed setup below. The following phone instructions are for source builders. End users use the published installation links.
+The [Chrome extension](extension/README.md) works with this local installation. Apple AutoFill and passkey-provider integration require the signed setup below. The following phone instructions are for source builders. End users use the published installation links.
 
 ### Apple signing and manual builds
 
@@ -142,7 +145,7 @@ bash scripts/build.sh local
 open 'build/local/Build/Products/Release/Proximus.app'
 ```
 
-Local Mac builds use an isolated Application Support vault and the macOS login Keychain. The build script applies an ad-hoc signature and excludes the unprovisioned AutoFill extension. Password storage, generation, import, backup, device unlock, pairing, and encrypted sync remain available. Browser AutoFill and passkey-provider integration use the Apple-team-signed build.
+Local Mac builds use an isolated Application Support vault and the macOS login Keychain. The build script applies an ad-hoc signature and excludes the unprovisioned Apple AutoFill extension. Password storage, generation, import, backup, device unlock, pairing, encrypted sync, and the Chrome extension remain available. Apple AutoFill and passkey-provider integration use the Apple-team-signed build.
 
 For shared AutoFill, configure `Config/Local.xcconfig`, select the `ProximusPasswords-macOS` scheme, and run it on **My Mac**, or build from the terminal:
 
@@ -483,6 +486,7 @@ License: Apache-2.0. All Proximus features are free.
 install                  Mac and iPhone/iPad installation entry point
 apps/Shared/             Native Mac, iPhone, and iPad views
 apps/AutoFill/           Password and passkey provider extension
+extension/              Chrome extension and local connection installer
 apps/Brand/              Original Proximus logo assets
 apps/Fonts/              Dashboard fonts and OFL licenses
 Sources/ProximusKit/     Vault, hardware keys, pairing, sync

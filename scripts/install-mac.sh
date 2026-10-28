@@ -63,4 +63,5 @@ if [[ -d "$legacy_app" && ! -L "$legacy_app" ]]; then
 fi
 if [[ -n "$previous" ]]; then echo "Previous application: $previous"; fi
 echo 'Vault data is stored separately and is preserved when the app is updated.'
+python3 extension/install.py --app "$installed_app"
 open -n "$installed_app"

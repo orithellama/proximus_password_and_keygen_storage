@@ -64,7 +64,8 @@ struct SettingsView: View {
             }
             ProximusSection("Fill passwords in websites & apps") {
                 if AppEnvironment.isStandaloneMac {
-                    Text("Browser AutoFill needs the signed Proximus app. In this local build, open a saved login and use Copy password.").font(.callout).foregroundStyle(Theme.muted)
+                    Text("In Chrome, pin the Proximus extension and choose Fill saved login on a sign-in page. Approve the website and login in the Proximus window.").font(.callout).foregroundStyle(Theme.muted)
+                    Link("Set up the Chrome extension", destination: ProximusLinks.source.appendingPathComponent("tree/main/extension"))
                 } else {
                     Text("1. Open your device’s Settings.\n2. Find AutoFill & Passwords.\n3. Enable Proximus as a password provider.").lineSpacing(6)
                     Button(session.indexEnabled ? "Turn off login suggestions" : "Turn on login suggestions") { run { try await session.setIndexEnabled(!session.indexEnabled) } }

@@ -1,21 +1,34 @@
 import SwiftUI
 import ProximusKit
 
-@main struct ProximusPasswordsApp: App {
+@main enum ProximusLauncher {
+    @MainActor static func main() {
+        #if os(macOS)
+        BrowserNativeHost.prepare()
+        if BrowserNativeHost.request != nil { BrowserNativeHost.run(); return }
+        #endif
+        ProximusPasswordsApp.main()
+    }
+}
+
+struct ProximusPasswordsApp: App {
     init() { Theme.registerFonts() }
     var body: some Scene {
         WindowGroup {
+            standardContent
+        }
+        #if os(macOS)
+        .defaultSize(width: 1180, height: 780)
+        .commands { CommandGroup(replacing: .newItem) {} }
+        #endif
+    }
+    @ViewBuilder private var standardContent: some View {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--capture-preview") { PreviewCaptureView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle()) }
             else { BootstrapView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle()) }
             #else
             BootstrapView().tint(Theme.accent).font(Theme.body()).buttonStyle(ProximusButtonStyle()).toggleStyle(ProximusToggleStyle()).textFieldStyle(ProximusTextFieldStyle())
             #endif
-        }
-        #if os(macOS)
-        .defaultSize(width: 1180, height: 780)
-        .commands { CommandGroup(replacing: .newItem) {} }
-        #endif
     }
 }
 
